@@ -294,9 +294,9 @@ export default async function ToolPage({ params }: PageProps) {
 
             {/* Hero Box */}
             <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-8">
-              <div className="mb-6 flex items-start gap-6">
-                {/* Logo */}
-                <div className="flex h-20 w-20 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-purple-600 to-purple-800 text-4xl overflow-hidden">
+              <div className="mb-6 flex flex-col sm:flex-row items-start gap-4 sm:gap-6">
+              {/* Logo */}
+               <div className="flex h-16 sm:h-20 w-16 sm:w-20 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-purple-600 to-purple-800 text-4xl overflow-hidden">
                   {tool.logo && tool.logo.startsWith('http') ? (
                     <Image
                       src={tool.logo}

@@ -1,6 +1,7 @@
 // src/app/blog/[slug]/page.tsx
 // REFINED WITH seoConfig + generateArticleSchema + Breadcrumb Schema
 
+
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
@@ -14,7 +15,9 @@ import Image from 'next/image'
 import React from 'react'
 import JsonLd from '@/components/SEO/JsonLd'
 
+
 type Params = { slug: string }
+
 
 export async function generateMetadata({
   params,
@@ -29,15 +32,18 @@ export async function generateMetadata({
     .eq('slug', slug)
     .single()
 
+
   if (!post) {
     return { title: 'Post Not Found | Future Agent' }
   }
+
 
   // ✅ USE seoTemplates for consistent title/description
   const title = post.meta_title || seoTemplates.blog.titleTemplate(post.title)
   const description = post.meta_description || seoTemplates.blog.descriptionTemplate(post.excerpt)
   const postUrl = `${seoConfig.siteUrl}/blog/${post.slug}`
   const ogImage = post.featured_image || seoConfig.defaultOgImage
+
 
   return {
     title,
@@ -86,6 +92,7 @@ export async function generateMetadata({
   }
 }
 
+
 export default async function BlogPostPage({
   params,
 }: {
@@ -93,12 +100,14 @@ export default async function BlogPostPage({
 }) {
   const { slug } = await params
 
+
   // Fetch the current post
   const { data: post } = await supabase
     .from('blog_posts')
     .select('*')
     .eq('slug', slug)
     .single()
+
 
   // Check if post is published and not scheduled for future
   if (post && post.published && post.published_date) {
@@ -120,9 +129,11 @@ export default async function BlogPostPage({
     }
   }
 
+
   if (!post) {
     notFound()
   }
+
 
   // Fetch related posts with smart algorithm
   const { data: allPublishedPosts } = await supabase
@@ -132,6 +143,7 @@ export default async function BlogPostPage({
     .lte('published_date', new Date().toISOString())
     .neq('slug', slug)
     .order('created_at', { ascending: false })
+
 
   // Calculate relevance scores
   const scoredPosts = allPublishedPosts?.map(relatedPost => {
@@ -151,6 +163,7 @@ export default async function BlogPostPage({
     return { ...relatedPost, relevanceScore: score }
   }) || []
 
+
   // Sort by relevance score (highest first), then by date
   const relatedPosts = scoredPosts
     .sort((a, b) => {
@@ -160,6 +173,7 @@ export default async function BlogPostPage({
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     })
     .slice(0, 3)
+
 
   // ✅ USE generateArticleSchema from helpers
   const articleSchema = generateArticleSchema({
@@ -172,7 +186,8 @@ export default async function BlogPostPage({
     author: post.author || 'Future Agent Team',
   })
 
-  // ✅ ADD breadcrumbSchema
+
+  // ✅ ADD breadcrumbSchema for SEO (kept for schema but removed visual display on mobile)
   const breadcrumbs = [
     { name: 'Home', url: seoConfig.siteUrl },
     { name: 'Blog', url: `${seoConfig.siteUrl}/blog` },
@@ -180,18 +195,20 @@ export default async function BlogPostPage({
   ]
   const breadcrumbSchema = generateBreadcrumbSchema(breadcrumbs)
 
+
   return (
     <>
       {/* ✅ JSON-LD Schemas */}
       <JsonLd data={articleSchema} />
       <JsonLd data={breadcrumbSchema} />
 
+
       <div className="min-h-screen bg-gradient-to-b from-slate-950 to-slate-900 pt-1">
-        {/* Header */}
+        {/* Header - Breadcrumb removed on mobile, kept on desktop for SEO */}
         <section className="px-4 pt-12 pb-10 border-b border-slate-800">
           <div className="mx-auto max-w-6xl">
-            {/* Breadcrumb Navigation */}
-            <div className="flex items-center gap-2 text-sm text-slate-400 mb-4">
+            {/* Breadcrumb Navigation - Desktop Only */}
+            <div className="hidden md:flex items-center gap-2 text-sm text-slate-400 mb-4">
               {breadcrumbs.map((crumb, index) => (
                 <div key={crumb.url} className="flex items-center gap-2">
                   {index > 0 && <span>/</span>}
@@ -206,9 +223,11 @@ export default async function BlogPostPage({
               ))}
             </div>
 
+
             <span className="inline-block px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-300 text-xs font-semibold mb-3">
               {post.category}
             </span>
+
 
             <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">
               {post.title}
@@ -257,6 +276,7 @@ export default async function BlogPostPage({
           </div>
         </section>
 
+
         {/* Body + Sidebar */}
         <section className="px-4 py-10">
           <div className="mx-auto max-w-6xl grid gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,1.1fr)]">
@@ -274,6 +294,7 @@ export default async function BlogPostPage({
                 </div>
               )}
 
+
               {/* Article content - HTML MODE with professional styling */}
               <article className="text-slate-200">
                 {post.content ? (
@@ -283,43 +304,54 @@ export default async function BlogPostPage({
                       // Base text styling
                       text-slate-300 leading-relaxed
 
+
                       // H2 Headings (Section headers)
                       [&>h2]:text-3xl [&>h2]:font-bold [&>h2]:text-white
                       [&>h2]:mt-8 [&>h2]:mb-4 [&>h2]:leading-tight
+
 
                       // H3 Headings (Subsections)
                       [&>h3]:text-2xl [&>h3]:font-bold [&>h3]:text-white
                       [&>h3]:mt-6 [&>h3]:mb-3 [&>h3]:leading-tight
 
+
                       // H4 Headings
                       [&>h4]:text-xl [&>h4]:font-semibold [&>h4]:text-white
                       [&>h4]:mt-4 [&>h4]:mb-2
+
 
                       // Paragraphs
                       [&>p]:text-lg [&>p]:mb-6 [&>p]:leading-relaxed
                       [&>p]:text-slate-300
 
+
                       // Unordered Lists
                       [&>ul]:list-disc [&>ul]:list-inside [&>ul]:mb-6 [&>ul]:space-y-2
                       [&>li]:text-lg [&>li]:text-slate-300 [&>li]:leading-relaxed
 
+
                       // Ordered Lists
                       [&>ol]:list-decimal [&>ol]:list-inside [&>ol]:mb-6 [&>ol]:space-y-2
+
 
                       // Links
                       [&>a]:text-cyan-400 [&>a]:underline [&>a]:hover:text-cyan-300
                       [&>a]:transition-colors
 
+
                       // Strong text
                       [&>strong]:font-bold [&>strong]:text-white
 
+
                       // Emphasis
                       [&>em]:italic [&>em]:text-slate-200
+
 
                       // Blockquotes
                       [&>blockquote]:border-l-4 [&>blockquote]:border-cyan-500
                       [&>blockquote]:pl-4 [&>blockquote]:italic [&>blockquote]:my-6
                       [&>blockquote]:text-slate-300 [&>blockquote]:bg-slate-900/50 [&>blockquote]:py-2
+
 
                       // Code blocks
                       [&>pre]:bg-slate-950 [&>pre]:text-cyan-100 [&>pre]:p-4
@@ -328,9 +360,11 @@ export default async function BlogPostPage({
                       [&>code]:font-mono [&>code]:text-sm [&>code]:bg-slate-900
                       [&>code]:px-2 [&>code]:py-1 [&>code]:rounded [&>code]:text-cyan-300
 
+
                       // Images
                       [&>img]:max-w-full [&>img]:h-auto [&>img]:rounded-lg
                       [&>img]:my-8 [&>img]:shadow-lg
+
 
                       // Horizontal rule
                       [&>hr]:my-8 [&>hr]:border-slate-800
@@ -340,6 +374,7 @@ export default async function BlogPostPage({
                   <p className="text-slate-400 italic">Content not available yet.</p>
                 )}
               </article>
+
 
               {/* Tags */}
               {post.tags && post.tags.length > 0 && (
@@ -357,6 +392,7 @@ export default async function BlogPostPage({
                   </div>
                 </div>
               )}
+
 
               {/* Author box */}
               <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6">
@@ -401,6 +437,7 @@ export default async function BlogPostPage({
           </div>
         </section>
 
+
         {/* Related posts */}
         <section className="px-4 py-10 bg-slate-950/50">
           <div className="mx-auto max-w-6xl">
@@ -414,6 +451,7 @@ export default async function BlogPostPage({
                   const relatedTags = relatedPost.tags || []
                   const sharedTags = postTags.filter((tag: string) => relatedTags.includes(tag))
                   const sameCategory = relatedPost.category === post.category
+
 
                   return (
                     <Link
@@ -432,13 +470,16 @@ export default async function BlogPostPage({
                         )}
                       </div>
 
+
                       <h3 className="text-lg font-semibold text-white group-hover:text-cyan-400 mb-2 transition-colors line-clamp-2">
                         {relatedPost.title}
                       </h3>
 
+
                       <p className="text-sm text-slate-400 line-clamp-2 mb-3">
                         {relatedPost.excerpt}
                       </p>
+
 
                       {sharedTags.length > 0 && (
                         <div className="flex flex-wrap gap-1.5 mt-3 pt-3 border-t border-slate-800">
@@ -466,6 +507,7 @@ export default async function BlogPostPage({
             )}
           </div>
         </section>
+
 
         {/* COMMENT SECTION */}
         <CommentSection postId={post.id} />

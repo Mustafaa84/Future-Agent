@@ -1,5 +1,6 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
+import type { NextConfig } from 'next'
+
+const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       // ✅ LOCALHOST (dev)
@@ -9,7 +10,7 @@ const nextConfig = {
         port: '3000',
         pathname: '/**',
       },
-      // ✅ UNSPLASH (your image)
+      // ✅ UNSPLASH
       {
         protocol: 'https',
         hostname: 'images.unsplash.com',
@@ -21,30 +22,31 @@ const nextConfig = {
         hostname: 'media.istockphoto.com',
         pathname: '/**',
       },
-      // ✅ COMMON AI IMAGE SOURCES
-      {
-        protocol: 'https',
-        hostname: 'images.unsplash.com',
-        pathname: '/**',
-      },
+      // ✅ OpenAI CDN
       {
         protocol: 'https',
         hostname: 'cdn.openai.com',
         pathname: '/**',
       },
+      // ✅ Supabase Storage (for uploaded images)
       {
         protocol: 'https',
-        hostname: '*.unsplash.com',
+        hostname: '*.supabase.co',
         pathname: '/**',
       },
-      // ✅ CATCH-ALL for future Perplexity images
+      // ✅ Common image CDNs
       {
         protocol: 'https',
-        hostname: '**',
+        hostname: 'res.cloudinary.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'i.imgur.com',
         pathname: '/**',
       },
     ],
   },
 }
 
-module.exports = nextConfig
+export default nextConfig

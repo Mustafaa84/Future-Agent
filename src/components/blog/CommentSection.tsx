@@ -79,8 +79,9 @@ export default function CommentSection({ postId }: CommentSectionProps) {
       // Hide success message after 3 seconds
       setTimeout(() => setSuccess(false), 3000)
     } catch (err) {
+      console.error('Submission error details:', err); // Log full error object
       const commentError =
-        err instanceof Error ? err : new Error(String(err))
+        err instanceof Error ? err : new Error(JSON.stringify(err)) // Stringify object errors
       setError(commentError.message || 'Failed to submit comment')
     } finally {
       setSubmitting(false)
@@ -113,9 +114,8 @@ export default function CommentSection({ postId }: CommentSectionProps) {
             </span>
           </div>
           <svg
-            className={`w-5 h-5 text-slate-400 transition-transform ${
-              formOpen ? 'rotate-180' : ''
-            }`}
+            className={`w-5 h-5 text-slate-400 transition-transform ${formOpen ? 'rotate-180' : ''
+              }`}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -230,7 +230,7 @@ export default function CommentSection({ postId }: CommentSectionProps) {
       {/* SUCCESS MESSAGE */}
       {success && (
         <div className="bg-green-900/20 border border-green-700 text-green-400 px-4 py-3 rounded-lg text-sm mb-6">
-          ✅ Comment posted successfully!
+          ✅ Comment submitted! It will appear after moderation.
         </div>
       )}
 
@@ -276,8 +276,9 @@ export default function CommentSection({ postId }: CommentSectionProps) {
                   </div>
                 </div>
               </div>
+              {/* ✅ Handle both fields for backward compatibility if needed */}
               <p className="text-slate-300 leading-relaxed whitespace-pre-wrap">
-                {comment.content}
+                {(comment as any).comment_text || comment.content}
               </p>
             </div>
           ))

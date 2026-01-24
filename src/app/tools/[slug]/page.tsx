@@ -12,6 +12,7 @@ import {
 } from '@/lib/seo/schemas'
 
 const EmailOptInClient = dynamic(() => import('@/components/EmailOptInClient'))
+import CommentsSection from '@/components/CommentsSection'
 
 interface PageParams {
   slug: string
@@ -184,6 +185,7 @@ export default async function ToolPage({ params }: PageProps) {
     { data: alternatives },
     { data: comparisons },
     { data: reviewData },
+    { data: comments },
   ] = await Promise.all([
     supabase
       .from('tool_pricing_plans')
@@ -225,6 +227,12 @@ export default async function ToolPage({ params }: PageProps) {
       .select('id, intro')
       .eq('tool_id', tool.id)
       .single<{ id: string; intro: string | null }>(),
+    supabase
+      .from('tool_comments')
+      .select('*')
+      .eq('tool_id', tool.id)
+      .eq('approved', true) // Only approved
+      .order('created_at', { ascending: false }),
   ])
 
   let reviewSections: ReviewSection[] | null = null
@@ -262,11 +270,11 @@ export default async function ToolPage({ params }: PageProps) {
   const faqSchema =
     faqs && faqs.length > 0
       ? generateFAQSchema(
-          (faqs as FaqRecord[]).map((faq) => ({
-            question: faq.question,
-            answer: faq.answer,
-          })),
-        )
+        (faqs as FaqRecord[]).map((faq) => ({
+          question: faq.question,
+          answer: faq.answer,
+        })),
+      )
       : null
 
   return (
@@ -295,8 +303,8 @@ export default async function ToolPage({ params }: PageProps) {
             {/* Hero Box */}
             <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-8">
               <div className="mb-6 flex flex-col sm:flex-row items-start gap-4 sm:gap-6">
-              {/* Logo */}
-               <div className="flex h-16 sm:h-20 w-16 sm:w-20 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-purple-600 to-purple-800 text-4xl overflow-hidden">
+                {/* Logo */}
+                <div className="flex h-16 sm:h-20 w-16 sm:w-20 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-purple-600 to-purple-800 text-4xl overflow-hidden">
                   {tool.logo && tool.logo.startsWith('http') ? (
                     <Image
                       src={tool.logo}
@@ -486,9 +494,8 @@ export default async function ToolPage({ params }: PageProps) {
                 {(pricingPlans as PricingPlanRecord[]).map((plan) => (
                   <div
                     key={plan.id}
-                    className={`relative rounded-xl border p-6 bg-slate-900/60 transition hover:scale-105 ${
-                      plan.is_popular ? 'border-cyan-500 scale-105' : 'border-slate-800'
-                    }`}
+                    className={`relative rounded-xl border p-6 bg-slate-900/60 transition hover:scale-105 ${plan.is_popular ? 'border-cyan-500 scale-105' : 'border-slate-800'
+                      }`}
                   >
                     {plan.is_popular === true && (
                       <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-cyan-500 px-4 py-1 text-xs font-bold text-slate-950">
@@ -550,11 +557,10 @@ export default async function ToolPage({ params }: PageProps) {
                       href={primaryCtaHref}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className={`block w-full rounded-lg px-6 py-3 text-center font-semibold text-white transition ${
-                        plan.is_popular
-                          ? 'bg-cyan-500 hover:bg-cyan-400'
-                          : 'bg-slate-800 hover:bg-slate-700'
-                      }`}
+                      className={`block w-full rounded-lg px-6 py-3 text-center font-semibold text-white transition ${plan.is_popular
+                        ? 'bg-cyan-500 hover:bg-cyan-400'
+                        : 'bg-slate-800 hover:bg-slate-700'
+                        }`}
                     >
                       Get Started
                     </a>
@@ -672,22 +678,22 @@ export default async function ToolPage({ params }: PageProps) {
                       </th>
                       {(comparisons as ComparisonRow[])[0]
                         ?.competitor_1_name && (
-                        <th className="p-4 text-left text-sm font-semibold text-white">
-                          {
-                            (comparisons as ComparisonRow[])[0]
-                              .competitor_1_name
-                          }
-                        </th>
-                      )}
+                          <th className="p-4 text-left text-sm font-semibold text-white">
+                            {
+                              (comparisons as ComparisonRow[])[0]
+                                .competitor_1_name
+                            }
+                          </th>
+                        )}
                       {(comparisons as ComparisonRow[])[0]
                         ?.competitor_2_name && (
-                        <th className="p-4 text-left text-sm font-semibold text-white">
-                          {
-                            (comparisons as ComparisonRow[])[0]
-                              .competitor_2_name
-                          }
-                        </th>
-                      )}
+                          <th className="p-4 text-left text-sm font-semibold text-white">
+                            {
+                              (comparisons as ComparisonRow[])[0]
+                                .competitor_2_name
+                            }
+                          </th>
+                        )}
                     </tr>
                   </thead>
                   <tbody>
@@ -810,6 +816,17 @@ export default async function ToolPage({ params }: PageProps) {
             <p className="mt-4 text-sm text-slate-500">
               No credit card required • 7-day free trial
             </p>
+          </div>
+        </section>
+
+        {/* ✅ COMMENTS SECTION - Moved to Bottom */}
+        <section className="px-4 py-16 bg-slate-950">
+          <div className="mx-auto max-w-4xl">
+            <CommentsSection
+              contentId={tool.id}
+              contentType="tool"
+              comments={(comments || []) as any[]}
+            />
           </div>
         </section>
       </div>

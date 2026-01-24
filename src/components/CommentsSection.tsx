@@ -48,6 +48,12 @@ export default function CommentsSection({
       return
     }
 
+    if (formData.comment_text.length > 2000) {
+      setError('Comment must be less than 2000 characters')
+      setLoading(false)
+      return
+    }
+
     try {
       const tableName =
         contentType === 'tool' ? 'tool_comments' : 'blog_comments'
@@ -62,7 +68,7 @@ export default function CommentsSection({
             author_email: formData.author_email,
             rating: formData.rating,
             comment_text: formData.comment_text,
-            approved: true,
+            approved: false, // Require admin moderation for security
           },
         ])
 
@@ -104,7 +110,7 @@ export default function CommentsSection({
 
       {success && (
         <div className="mb-4 p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-400">
-          ✓ Review submitted successfully!
+          ✓ Review submitted! It will appear after moderation.
         </div>
       )}
 
@@ -165,11 +171,10 @@ export default function CommentsSection({
                     onClick={() =>
                       setFormData({ ...formData, rating: star })
                     }
-                    className={`text-2xl transition-all ${
-                      star <= formData.rating
-                        ? 'text-yellow-400 hover:text-yellow-300'
-                        : 'text-slate-700 hover:text-slate-600'
-                    }`}
+                    className={`text-2xl transition-all ${star <= formData.rating
+                      ? 'text-yellow-400 hover:text-yellow-300'
+                      : 'text-slate-700 hover:text-slate-600'
+                      }`}
                   >
                     ★
                   </button>
@@ -243,11 +248,10 @@ export default function CommentsSection({
                 {[...Array(5)].map((_, i) => (
                   <span
                     key={i}
-                    className={`text-sm ${
-                      i < comment.rating
-                        ? 'text-yellow-400'
-                        : 'text-slate-700'
-                    }`}
+                    className={`text-sm ${i < comment.rating
+                      ? 'text-yellow-400'
+                      : 'text-slate-700'
+                      }`}
                   >
                     ★
                   </span>

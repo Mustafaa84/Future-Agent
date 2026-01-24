@@ -91,6 +91,12 @@ export default function AdminLayout({
                   Blog Posts
                 </Link>
                 <Link
+                  href="/admin/comments"
+                  className="text-slate-300 hover:text-white transition-colors"
+                >
+                  Comments
+                </Link>
+                <Link
                   href="/admin/affiliate-links"
                   className="text-slate-300 hover:text-white transition-colors"
                 >

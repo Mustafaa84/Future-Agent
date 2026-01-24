@@ -1,7 +1,9 @@
 import Link from 'next/link'
-import { supabase } from '@/lib/supabase'
+import { createAdminClient } from '@/lib/supabase'
 
 export default async function AdminDashboard() {
+  const supabase = createAdminClient()
+
   // Get counts
   const { count: toolsCount } = await supabase
     .from('ai_tools')
@@ -32,7 +34,7 @@ export default async function AdminDashboard() {
   const { count: clicksLast7Days } = await supabase
     .from('affiliate_clicks')
     .select('*', { count: 'exact', head: true })
-    .gte('clicked_at', sevenDaysAgo.toISOString())
+    .gte('created_at', sevenDaysAgo.toISOString())
 
   const startOfMonth = new Date()
   startOfMonth.setDate(1)
@@ -41,7 +43,88 @@ export default async function AdminDashboard() {
   const { count: clicksThisMonth } = await supabase
     .from('affiliate_clicks')
     .select('*', { count: 'exact', head: true })
-    .gte('clicked_at', startOfMonth.toISOString())
+    .gte('created_at', startOfMonth.toISOString())
+
+  // Recent Activity: latest posts, tools, and comments
+  const { data: recentPosts } = await supabase
+    .from('blog_posts')
+    .select('id, title, created_at')
+    .order('created_at', { ascending: false })
+    .limit(3)
+
+  const { data: recentTools } = await supabase
+    .from('ai_tools')
+    .select('id, name, created_at')
+    .order('created_at', { ascending: false })
+    .limit(3)
+
+  const { data: recentComments } = await supabase
+    .from('tool_comments')
+    .select('id, author_name, created_at, tool_id')
+    .order('created_at', { ascending: false })
+    .limit(3)
+
+  // Combine and sort
+  const activityItems = [
+    ...(recentPosts || []).map((p) => ({
+      id: p.id,
+      type: 'post',
+      text: `New post: ${p.title}`,
+      created_at: p.created_at,
+    })),
+    ...(recentTools || []).map((t) => ({
+      id: t.id,
+      type: 'tool',
+      text: `New tool: ${t.name}`,
+      created_at: t.created_at,
+    })),
+    ...(recentComments || []).map((c) => ({
+      id: c.id,
+      type: 'comment',
+      text: `Review by ${c.author_name}`,
+      created_at: c.created_at,
+    })),
+  ]
+    .sort(
+      (a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    )
+    .slice(0, 5)
+
+  function timeAgo(dateString: string) {
+    const seconds = Math.floor(
+      (new Date().getTime() - new Date(dateString).getTime()) / 1000
+    )
+    let interval = seconds / 31536000
+    if (interval > 1) return Math.floor(interval) + ' years ago'
+    interval = seconds / 2592000
+    if (interval > 1) return Math.floor(interval) + ' months ago'
+    interval = seconds / 86400
+    if (interval > 1) return Math.floor(interval) + ' days ago'
+    interval = seconds / 3600
+    if (interval > 1) return Math.floor(interval) + ' hours ago'
+    interval = seconds / 60
+    if (interval > 1) return Math.floor(interval) + ' minutes ago'
+    return 'Just now'
+  }
+
+  // Top Tools by Clicks (Performance)
+  const { data: allClicks } = await supabase
+    .from('affiliate_clicks')
+    .select('tool_slug, created_at')
+    .gte('created_at', startOfMonth.toISOString()) // This month only
+
+  const clicksByTool: Record<string, number> = {}
+  allClicks?.forEach((click) => {
+    const slug = click.tool_slug || 'unknown'
+    clicksByTool[slug] = (clicksByTool[slug] || 0) + 1
+  })
+
+  // Sort by clicks
+  const topTools = Object.entries(clicksByTool)
+    .map(([slug, count]) => ({ slug, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 3)
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
@@ -228,7 +311,7 @@ export default async function AdminDashboard() {
 
           {/* Recent Activity */}
           <div>
-            <div className="bg-gradient-to-r from-slate-900/80 to-slate-800/50 border border-slate-700/50 rounded-2xl p-6 backdrop-blur-xl">
+            <div className="bg-gradient-to-r from-slate-900/80 to-slate-800/50 border border-slate-700/50 rounded-2xl p-6 backdrop-blur-xl h-full">
               <h3 className="mb-4 flex items-center gap-2 text-lg font-bold text-white">
                 <span className="w-8 h-8 bg-gradient-to-r from-orange-500 to-amber-500 rounded-lg flex items-center justify-center text-sm font-bold text-slate-900">
                   🔥
@@ -236,69 +319,87 @@ export default async function AdminDashboard() {
                 Recent Activity
               </h3>
               <div className="space-y-3 text-sm">
-                <div className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-lg">
-                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                  <span className="text-slate-300">
-                    Lovable review published
-                  </span>
-                  <span className="ml-auto text-xs text-slate-500">
-                    2 min ago
-                  </span>
-                </div>
-                <div className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-lg">
-                  <div className="w-2 h-2 bg-blue-400 rounded-full" />
-                  <span className="text-slate-300">3 tools updated</span>
-                  <span className="ml-auto text-xs text-slate-500">
-                    1 hour ago
-                  </span>
-                </div>
-                <div className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-lg">
-                  <div className="w-2 h-2 bg-purple-400 rounded-full" />
-                  <span className="text-slate-300">
-                    Blog post draft saved
-                  </span>
-                  <span className="ml-auto text-xs text-slate-500">
-                    Yesterday
-                  </span>
-                </div>
+                {activityItems.length === 0 ? (
+                  <div className="text-slate-500 py-4 text-center">
+                    No recent activity
+                  </div>
+                ) : (
+                  activityItems.map((item) => (
+                    <div
+                      key={`${item.type}-${item.id}`}
+                      className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-lg"
+                    >
+                      <div
+                        className={`w-2 h-2 rounded-full ${item.type === 'post'
+                          ? 'bg-purple-400'
+                          : item.type === 'tool'
+                            ? 'bg-blue-400'
+                            : 'bg-green-400'
+                          }`}
+                      />
+                      <span className="text-slate-300 truncate flex-1">
+                        {item.text}
+                      </span>
+                      <span className="ml-auto text-xs text-slate-500 whitespace-nowrap">
+                        {timeAgo(item.created_at)}
+                      </span>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>
 
-          {/* Performance Overview */}
+          {/* Top Tools (Performance) */}
           <div>
-            <div className="bg-gradient-to-r from-slate-900/80 to-slate-800/50 border border-slate-700/50 rounded-2xl p-6 backdrop-blur-xl">
+            <div className="bg-gradient-to-r from-slate-900/80 to-slate-800/50 border border-slate-700/50 rounded-2xl p-6 backdrop-blur-xl h-full">
               <h3 className="mb-4 text-lg font-bold text-white">
-                Performance
+                Top Tools (This Month)
               </h3>
               <div className="space-y-4 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Page Speed</span>
-                  <div className="flex items-center gap-1">
-                    <div className="w-20 h-2 bg-slate-800 rounded-full overflow-hidden">
-                      <div className="h-2 bg-gradient-to-r from-emerald-400 to-teal-400 w-4/5 rounded-full" />
-                    </div>
-                    <span className="text-emerald-400 font-semibold">95</span>
+                {topTools.length === 0 ? (
+                  <div className="text-slate-500 py-4 text-center">
+                    No clicks recorded yet
                   </div>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">SEO Score</span>
-                  <div className="flex items-center gap-1">
-                    <div className="w-20 h-2 bg-slate-800 rounded-full overflow-hidden">
-                      <div className="h-2 bg-gradient-to-r from-cyan-400 to-blue-400 w-4/5 rounded-full" />
+                ) : (
+                  topTools.map((tool, index) => (
+                    <div key={tool.slug} className="flex justify-between">
+                      <span className="text-slate-300 font-medium capitalize truncate max-w-[60%]">
+                        {tool.slug.replace(/-/g, ' ')}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <div className="w-20 h-2 bg-slate-800 rounded-full overflow-hidden">
+                          <div
+                            className={`h-2 rounded-full ${index === 0
+                              ? 'bg-gradient-to-r from-emerald-400 to-teal-400'
+                              : index === 1
+                                ? 'bg-gradient-to-r from-cyan-400 to-blue-400'
+                                : 'bg-gradient-to-r from-amber-400 to-orange-400'
+                              }`}
+                            style={{
+                              width: `${Math.min(
+                                (tool.count /
+                                  (topTools[0]?.count || 1)) *
+                                100,
+                                100
+                              )}%`,
+                            }}
+                          />
+                        </div>
+                        <span
+                          className={`font-semibold ${index === 0
+                            ? 'text-emerald-400'
+                            : index === 1
+                              ? 'text-cyan-400'
+                              : 'text-amber-400'
+                            }`}
+                        >
+                          {tool.count}
+                        </span>
+                      </div>
                     </div>
-                    <span className="text-cyan-400 font-semibold">92</span>
-                  </div>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Conversion</span>
-                  <div className="flex items-center gap-1">
-                    <div className="w-20 h-2 bg-slate-800 rounded-full overflow-hidden">
-                      <div className="h-2 bg-gradient-to-r from-amber-400 to-orange-400 w-3/5 rounded-full" />
-                    </div>
-                    <span className="text-amber-400 font-semibold">2.1%</span>
-                  </div>
-                </div>
+                  ))
+                )}
               </div>
             </div>
           </div>

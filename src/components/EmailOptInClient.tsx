@@ -60,10 +60,10 @@ export default function EmailOptInClient() {
       <div className="max-w-3xl mx-auto p-8 bg-red-900/60 border-2 border-red-500/60 rounded-2xl backdrop-blur-xl shadow-2xl">
         <div className="text-4xl mx-auto mb-4 text-red-400">✗</div>
         <h3 className="text-2xl font-bold text-red-300 mb-3">
-          Oops! Invalid Email
+          Oops! Something Went Wrong
         </h3>
         <p className="text-red-200 text-lg mb-6">
-          Please enter a real email address
+          Please check your email and try again
         </p>
         <button
           onClick={() => setStatus('idle')}

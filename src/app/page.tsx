@@ -47,11 +47,11 @@ export const metadata: Metadata = {
     title: 'Best AI Tools Directory 2025 - Future Agent',
     description:
       'Expert reviews and personalized recommendations for 500+ AI tools. Compare features, pricing, and get exclusive deals on top AI software.',
-    url: 'https://future-agent.com',
+    url: process.env.NEXT_PUBLIC_SITE_URL || 'https://futureagent.com',
     siteName: 'Future Agent',
     images: [
       {
-        url: 'https://future-agent.com/og-image.jpg',
+        url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://futureagent.com'}/og-image.jpg`,
         width: 1200,
         height: 630,
         alt: 'Future Agent - Best AI Tools Directory and Reviews',
@@ -65,10 +65,10 @@ export const metadata: Metadata = {
     title: 'Best AI Tools Directory 2025 - Future Agent',
     description:
       'Discover 500+ AI tools with expert reviews. Compare features, pricing, and find your perfect match.',
-    images: ['https://future-agent.com/og-image.jpg'],
+    images: [`${process.env.NEXT_PUBLIC_SITE_URL || 'https://futureagent.com'}/og-image.jpg`],
   },
   alternates: {
-    canonical: 'https://future-agent.com',
+    canonical: process.env.NEXT_PUBLIC_SITE_URL || 'https://futureagent.com',
   },
   robots: {
     index: true,
@@ -109,6 +109,7 @@ async function getLatestBlogPosts(): Promise<BlogPost[]> {
       'id, slug, title, excerpt, featured_image, category, reading_time'
     )
     .eq('published', true)
+    .lte('published_date', new Date().toISOString()) // Only show live posts, not future-scheduled
     .order('created_at', { ascending: false })
     .limit(3)
 
@@ -376,7 +377,7 @@ export default async function Home() {
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 bg-gradient-to-br from-purple-600 to-purple-800 rounded-xl flex items-center justify-center text-2xl flex-shrink-0 overflow-hidden">
                         {typeof tool.logo === 'string' &&
-                        tool.logo.startsWith('http') ? (
+                          tool.logo.startsWith('http') ? (
                           <Image
                             src={tool.logo}
                             alt={tool.name}

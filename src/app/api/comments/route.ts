@@ -1,40 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
-
-interface Comment {
-  id: string
-  post_id: string
-  author_name: string
-  author_email: string | null
-  content: string
-  created_at: string
-  updated_at: string
-}
+import { supabase, createAdminClient } from '@/lib/supabase'
 
 interface CommentRequestBody {
-  post_id: string
+  post_id?: string
+  tool_id?: string
   author_name: string
   author_email?: string
   content: string
 }
 
-// GET - Fetch comments for a post
+// GET - Fetch comments for a post or tool
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const postId = searchParams.get('post_id')
+    const toolId = searchParams.get('tool_id')
 
-    if (!postId) {
+    if (!postId && !toolId) {
       return NextResponse.json(
-        { error: 'post_id is required' },
+        { error: 'post_id or tool_id is required' },
         { status: 400 }
       )
     }
 
+    const tableName = toolId ? 'tool_comments' : 'blog_comments'
+    const idField = toolId ? 'tool_id' : 'post_id'
+    const idValue = toolId || postId
+
     const { data: comments, error } = await supabase
-      .from('comments')
+      .from(tableName)
       .select('*')
-      .eq('post_id', postId)
+      .eq(idField, idValue)
+      .eq('approved', true) // Only show approved
       .order('created_at', { ascending: false })
 
     if (error) throw error
@@ -54,11 +51,17 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body: CommentRequestBody = await request.json()
+    const adminAuthClient = createAdminClient() // ✅ Use Admin Client
+
+    const tableName = body.tool_id ? 'tool_comments' : 'blog_comments'
+    const idField = body.tool_id ? 'tool_id' : 'post_id'
+    const idValue = body.tool_id || body.post_id
+    const parentTable = body.tool_id ? 'ai_tools' : 'blog_posts'
 
     // Validate required fields
-    if (!body.post_id || !body.author_name || !body.content) {
+    if (!idValue || !body.author_name || !body.content) {
       return NextResponse.json(
-        { error: 'post_id, author_name, and content are required' },
+        { error: 'ID (post/tool), author_name, and content are required' },
         { status: 400 }
       )
     }
@@ -85,20 +88,38 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { data, error } = await supabase
-      .from('comments')
+    // Verify parent exists first
+    const { data: parentExists } = await adminAuthClient
+      .from(parentTable)
+      .select('id')
+      .eq('id', idValue)
+      .single()
+
+    if (!parentExists) {
+      return NextResponse.json(
+        { error: `${parentTable} item not found. Cannot comment on non-existent item.` },
+        { status: 404 }
+      )
+    }
+
+    const { data, error } = await adminAuthClient
+      .from(tableName)
       .insert({
-        post_id: body.post_id,
+        [idField]: idValue,
         author_name: body.author_name.trim(),
         author_email: body.author_email?.trim() || null,
-        content: body.content.trim(),
+        comment_text: body.content.trim(),
+        rating: 5, // Default rating
+        approved: false,
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      } as Comment)
+      })
       .select()
-      .single<Comment>()
+      .single()
 
-    if (error) throw error
+    if (error) {
+      console.error('Supabase Insert Error:', error)
+      throw new Error(error.message || 'Database error')
+    }
 
     return NextResponse.json({ success: true, comment: data })
   } catch (error) {

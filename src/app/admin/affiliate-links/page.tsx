@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase'
+import { createAdminClient } from '@/lib/supabase'
 import { AffiliateLinksTable } from './AffiliateLinksTable'
 
 function generateSlugFromName(name: string) {
@@ -24,6 +24,7 @@ type AffiliateLinksPageProps = {
 }
 
 export default async function AffiliateLinksPage({ searchParams }: AffiliateLinksPageProps) {
+  const supabase = createAdminClient()
   const params = await searchParams
   const range = (params?.range as string) ?? 'all'
 
@@ -143,7 +144,7 @@ export default async function AffiliateLinksPage({ searchParams }: AffiliateLink
           Save one main affiliate URL and SEO-friendly slug for each tool. All CTAs and tracking now use these links via{' '}
           <code className="text-cyan-400">/go/slug</code>.
         </p>
-            </div>
+      </div>
 
       {/* Summary Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

@@ -10,6 +10,9 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Future Agent - Best AI Tools Directory",
   description: "Discover, compare, and choose the best AI tools for your business",
+  verification: {
+    google: "k28eQUOs-d5KFpnILWmjddnL4bEb9NdIQi6jV_SGiL4",
+  },
 };
 
 export default function RootLayout({

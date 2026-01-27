@@ -1,6 +1,6 @@
 'use server'
 
-import { createServerClient } from '@/lib/supabase'
+import { createAdminClient } from '@/lib/supabase'
 import { revalidatePath } from 'next/cache'
 
 // ✅ DOMPurify for HTML sanitization (SSR-safe)
@@ -8,9 +8,7 @@ import createDOMPurify from 'dompurify'
 import { JSDOM } from 'jsdom'
 
 // Create a DOMPurify instance using JSDOM (server-side)
-const window = new JSDOM('').window as unknown as Window
-// @ts-expect-error dompurify types vs jsdom Window
-const DOMPurify = createDOMPurify(window)
+// DOMPurify is initialized inside sanitizeHtml to avoid module-level SSR issues
 
 interface BlogPostInsertData {
   slug: string
@@ -64,6 +62,11 @@ interface ActionResponse<T = unknown> {
 function sanitizeHtml(html: string): string {
   if (!html) return ''
 
+  // Create a DOMPurify instance using JSDOM (server-side)
+  const window = new JSDOM('').window as unknown as Window
+  // @ts-expect-error dompurify types vs jsdom Window
+  const DOMPurify = createDOMPurify(window)
+
   return DOMPurify.sanitize(html, {
     USE_PROFILES: { html: true },
     ADD_ATTR: ['target', 'rel'], // allow target and rel on links
@@ -96,7 +99,7 @@ export async function createBlogPost(
   formData: FormData
 ): Promise<ActionResponse<BlogPostInsertData>> {
   try {
-    const supabase = createServerClient()
+    const supabase = createAdminClient()
 
     // Extract form data (matching YOUR schema)
     const title = formData.get('title') as string
@@ -203,6 +206,7 @@ export async function createBlogPost(
     // Revalidate ALL blog pages
     revalidatePath('/admin/blog')
     revalidatePath('/blog')
+    revalidatePath(`/blog/${slug}`)
     revalidatePath('/blog/[slug]', 'page')
 
     return {
@@ -225,7 +229,7 @@ export async function updateBlogPost(
   formData: FormData
 ): Promise<ActionResponse<BlogPostUpdateData>> {
   try {
-    const supabase = createServerClient()
+    const supabase = createAdminClient()
 
     // Extract form data (matching YOUR schema)
     const title = formData.get('title') as string
@@ -331,6 +335,7 @@ export async function updateBlogPost(
     // Revalidate ALL blog pages
     revalidatePath('/admin/blog')
     revalidatePath('/blog')
+    revalidatePath(`/blog/${slug}`)
     revalidatePath('/blog/[slug]', 'page')
 
     return {
@@ -352,7 +357,7 @@ export async function deleteBlogPost(
   id: string
 ): Promise<ActionResponse<null>> {
   try {
-    const supabase = createServerClient()
+    const supabase = createAdminClient()
 
     const { error } = await supabase
       .from('blog_posts')

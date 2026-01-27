@@ -1,14 +1,15 @@
 import BlogPostForm from '../../BlogPostForm'
-import { supabase } from '@/lib/supabase'
+import { createAdminClient } from '@/lib/supabase'
 
 
-export default async function EditBlogPostPage({ 
-  params 
-}: { 
-  params: Promise<{ id: string }> 
+export default async function EditBlogPostPage({
+  params
+}: {
+  params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  
+  const supabase = createAdminClient()
+
   const { data: post } = await supabase
     .from('blog_posts')
     .select('*')
@@ -25,7 +26,7 @@ export default async function EditBlogPostPage({
   }
 
 
-  return <BlogPostForm initialData={{ 
+  return <BlogPostForm initialData={{
     id: post.id,
     title: post.title || '',
     slug: post.slug || '',

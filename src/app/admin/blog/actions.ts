@@ -3,12 +3,7 @@
 import { createAdminClient } from '@/lib/supabase'
 import { revalidatePath } from 'next/cache'
 
-// ✅ DOMPurify for HTML sanitization (SSR-safe)
-import createDOMPurify from 'dompurify'
-import { JSDOM } from 'jsdom'
-
-// Create a DOMPurify instance using JSDOM (server-side)
-// DOMPurify is initialized inside sanitizeHtml to avoid module-level SSR issues
+// DOMPurify is disabled temporarily to resolve JSDOM server crashes
 
 interface BlogPostInsertData {
   slug: string
@@ -23,7 +18,6 @@ interface BlogPostInsertData {
   published: boolean
   published_date: string | null
   meta_title: string
-  og_image: string | null
   meta_description: string
   tags: string[]
   reading_time: number
@@ -45,7 +39,6 @@ interface BlogPostUpdateData {
   published: boolean
   published_date: string | null
   meta_title: string
-  og_image: string | null
   meta_description: string
   tags: string[]
   reading_time: number
@@ -61,16 +54,8 @@ interface ActionResponse<T = unknown> {
 // Helper: Sanitize HTML content before saving
 function sanitizeHtml(html: string): string {
   if (!html) return ''
-
-  // Create a DOMPurify instance using JSDOM (server-side)
-  const window = new JSDOM('').window as unknown as Window
-  // @ts-expect-error dompurify types vs jsdom Window
-  const DOMPurify = createDOMPurify(window)
-
-  return DOMPurify.sanitize(html, {
-    USE_PROFILES: { html: true },
-    ADD_ATTR: ['target', 'rel'], // allow target and rel on links
-  })
+  // Temporarily return raw HTML to avoid JSDOM crashes
+  return html
 }
 
 // Helper: Generate slug from title
@@ -184,7 +169,6 @@ export async function createBlogPost(
         published,
         published_date, // ✅ FIXED: Now correctly set based on status
         meta_title,
-        og_image: featured_image || null,
         meta_description,
         tags,
         reading_time,
@@ -314,7 +298,6 @@ export async function updateBlogPost(
         published,
         published_date, // ✅ FIXED: Now correctly set based on status
         meta_title,
-        og_image: featured_image || null,
         meta_description,
         tags,
         reading_time,

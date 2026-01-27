@@ -64,6 +64,16 @@ export default async function AdminDashboard() {
     .order('created_at', { ascending: false })
     .limit(3)
 
+  // Visitor stats (Real Data)
+  const { count: totalVisitors } = await supabase
+    .from('page_views')
+    .select('*', { count: 'exact', head: true })
+
+  const { count: visitorsThisWeek } = await supabase
+    .from('page_views')
+    .select('*', { count: 'exact', head: true })
+    .gte('created_at', sevenDaysAgo.toISOString())
+
   // Combine and sort
   const activityItems = [
     ...(recentPosts || []).map((p) => ({
@@ -200,13 +210,13 @@ export default async function AdminDashboard() {
             <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 to-teal-500/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
             <div className="relative">
               <div className="text-emerald-400 text-sm font-semibold mb-2 tracking-wide uppercase">
-                Live Traffic
+                Site Traffic
               </div>
               <div className="text-4xl font-black text-white mb-1">
-                1,247
+                {totalVisitors?.toLocaleString() || 0}
               </div>
               <div className="text-emerald-400 text-sm font-semibold">
-                Visitors this week
+                {visitorsThisWeek || 0} visitors this week
               </div>
             </div>
           </div>

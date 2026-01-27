@@ -25,7 +25,7 @@ export async function generateMetadata({
   params: Promise<Params>
 }): Promise<Metadata> {
   const { slug } = await params
-  
+
   const { data: post } = await supabase
     .from('blog_posts')
     .select('*')
@@ -148,18 +148,18 @@ export default async function BlogPostPage({
   // Calculate relevance scores
   const scoredPosts = allPublishedPosts?.map(relatedPost => {
     let score = 0
-    
+
     // +3 points for same category
     if (relatedPost.category === post.category) {
       score += 3
     }
-    
+
     // +1 point for each shared tag
     const postTags = post.tags || []
     const relatedTags = relatedPost.tags || []
     const sharedTags = postTags.filter((tag: string) => relatedTags.includes(tag))
     score += sharedTags.length
-    
+
     return { ...relatedPost, relevanceScore: score }
   }) || []
 
@@ -232,19 +232,19 @@ export default async function BlogPostPage({
             <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">
               {post.title}
             </h1>
-            
+
             <div className="flex items-center gap-3 text-xs text-slate-400 mb-4">
               <span>
-                {new Date(post.created_at).toLocaleDateString('en-US', { 
-                  month: 'long', 
-                  day: 'numeric', 
-                  year: 'numeric' 
+                {new Date(post.created_at).toLocaleDateString('en-US', {
+                  month: 'long',
+                  day: 'numeric',
+                  year: 'numeric'
                 })}
               </span>
               <span>•</span>
               <span>{post.reading_time || 5} min read</span>
             </div>
-            
+
             {/* Share buttons */}
             <div className="flex flex-wrap items-center gap-3 text-xs">
               <span className="text-slate-400">Share:</span>
@@ -284,12 +284,21 @@ export default async function BlogPostPage({
             <div className="space-y-8">
               {/* Featured Image */}
               {post.featured_image && (
-                <div className="relative w-full h-[400px] rounded-xl overflow-hidden">
+                <div className="w-full mb-8 overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/20 shadow-2xl transition-all duration-500 hover:shadow-cyan-500/10">
                   <Image
                     src={post.featured_image}
                     alt={post.title}
-                    fill
-                    className="object-cover"
+                    width={1200}
+                    height={675}
+                    priority
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 66vw, 1200px"
+                    style={{
+                      width: '100%',
+                      height: 'auto',
+                      maxHeight: '700px',
+                      objectFit: 'cover',
+                    }}
+                    className="transform transition-transform duration-700 hover:scale-105"
                   />
                 </div>
               )}
@@ -298,8 +307,8 @@ export default async function BlogPostPage({
               {/* Article content - HTML MODE with professional styling */}
               <article className="text-slate-200">
                 {post.content ? (
-                  <div 
-                    dangerouslySetInnerHTML={{ __html: post.content }} 
+                  <div
+                    dangerouslySetInnerHTML={{ __html: post.content }}
                     className="
                       // Base text styling
                       text-slate-300 leading-relaxed
@@ -428,7 +437,7 @@ export default async function BlogPostPage({
                 </div>
               </div>
             </div>
-            
+
             {/* Sidebar */}
             <aside className="space-y-6 lg:sticky lg:top-24 lg:h-fit">
               <EmailOptInSidebar />

@@ -51,7 +51,7 @@ export default function CommentForm({
             author_email: formData.author_email,
             rating: formData.rating,
             comment_text: formData.comment_text,
-            approved: true,
+            approved: false, // Default to unapproved for moderation
           },
         ])
 
@@ -149,11 +149,10 @@ export default function CommentForm({
                 key={star}
                 type="button"
                 onClick={() => setFormData({ ...formData, rating: star })}
-                className={`text-3xl transition-all ${
-                  star <= formData.rating
+                className={`text-3xl transition-all ${star <= formData.rating
                     ? 'text-yellow-400 hover:text-yellow-300'
                     : 'text-slate-700 hover:text-slate-600'
-                }`}
+                  }`}
               >
                 ★
               </button>

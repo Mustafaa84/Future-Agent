@@ -281,10 +281,10 @@ export default async function BlogPostPage({
         <section className="px-4 py-10">
           <div className="mx-auto max-w-6xl grid gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,1.1fr)]">
             {/* Main content + Author box */}
-            <div className="space-y-8">
+            <div className="space-y-8 min-w-0">
               {/* Featured Image */}
               {post.featured_image && (
-                <div className="w-full mb-8 overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/20 shadow-2xl transition-all duration-500 hover:shadow-cyan-500/10">
+                <div className="w-full mb-8 overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/20 shadow-2xl transition-all duration-500 hover:shadow-cyan-500/10 max-w-full">
                   <Image
                     src={post.featured_image}
                     alt={post.title}
@@ -295,7 +295,7 @@ export default async function BlogPostPage({
                     style={{
                       width: '100%',
                       height: 'auto',
-                      maxHeight: '700px',
+                      maxHeight: '600px',
                       objectFit: 'cover',
                     }}
                     className="transform transition-transform duration-700 hover:scale-105"
@@ -305,7 +305,7 @@ export default async function BlogPostPage({
 
 
               {/* Article content - HTML MODE with professional styling */}
-              <article className="text-slate-200">
+              <article className="text-slate-200 break-words overflow-hidden">
                 {post.content ? (
                   <div
                     dangerouslySetInnerHTML={{ __html: post.content }}

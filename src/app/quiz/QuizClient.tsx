@@ -31,6 +31,11 @@ export type QuizTool = {
   category: string | null
   rating?: number | null
   review_count?: number | null
+  tags?: unknown
+  pricing_model?: string | null
+  starting_price?: string | number | null
+  has_affiliate_link?: boolean  // NEW: For revenue optimization
+  commission_rate?: number | null  // NEW: Future use for optimal recommendations
 }
 
 interface QuizClientProps {
@@ -43,7 +48,9 @@ export default function QuizClient({ tools }: QuizClientProps) {
   const [hasSubmittedEmail, setHasSubmittedEmail] = useState(false)
   const [isAnimating, setIsAnimating] = useState(false)
 
-  const totalSteps = 7
+  // Reduced to 6 steps (removed Use Case)
+  const totalSteps = 6
+
   const emailValid =
     answers.email.trim().length > 3 && answers.email.includes('@')
 
@@ -52,8 +59,7 @@ export default function QuizClient({ tools }: QuizClientProps) {
     (step === 2 && !answers.teamSize) ||
     (step === 3 && !answers.budget) ||
     (step === 4 && !answers.experience) ||
-    (step === 5 && !answers.useCase) ||
-    (step === 6 && !answers.priority)
+    (step === 5 && !answers.priority)
 
   const goNext = () => {
     if (step < totalSteps && !nextDisabled) {
@@ -61,7 +67,21 @@ export default function QuizClient({ tools }: QuizClientProps) {
       setTimeout(() => {
         setStep(step + 1)
         setIsAnimating(false)
-      }, 150)
+      }, 300) // Slightly longer delay for smoother transition
+    }
+  }
+
+  // Auto-advance helper
+  const handleSelection = (update: Partial<Answers>) => {
+    setAnswers(prev => ({ ...prev, ...update }))
+
+    // Auto-advance logic
+    if (step < totalSteps) {
+      setIsAnimating(true)
+      setTimeout(() => {
+        setStep(prev => prev + 1)
+        setIsAnimating(false)
+      }, 400) // 400ms delay to let user see their selection
     }
   }
 
@@ -81,7 +101,7 @@ export default function QuizClient({ tools }: QuizClientProps) {
     setStep(1)
   }
 
-  // PURE DYNAMIC recommendation logic based on tools[] from DB
+  // SMART MULTI-SIGNAL recommendation logic
   const getRecommendations = () => {
     const recs: {
       name: string
@@ -90,93 +110,105 @@ export default function QuizClient({ tools }: QuizClientProps) {
       match: number
     }[] = []
 
+    // Helper: Extract tags as string array
+    const getTags = (tool: typeof tools[0]): string[] => {
+      if (!tool.tags) return []
+      if (Array.isArray(tool.tags)) {
+        return tool.tags.map(t => typeof t === 'string' ? t.toLowerCase() : '').filter(Boolean)
+      }
+      return []
+    }
+
+    // Helper: Calculate goal match score
+    const getGoalScore = (goal: string, tool: typeof tools[0]): number => {
+      const category = tool.category?.toLowerCase() || ''
+      const tags = getTags(tool)
+      let score = 0
+
+      // Define matching criteria for each goal
+      const goalCriteria: Record<string, { categories: string[]; tags: string[] }> = {
+        'content': {
+          categories: ['writing', 'content', 'seo', 'social', 'copywriting'],
+          tags: ['writing', 'content', 'blog', 'copywriting', 'seo', 'article']
+        },
+        'coding': {
+          categories: ['coding', 'developer', 'programming', 'ai coding', 'code'],
+          tags: ['coding', 'development', 'programming', 'github', 'code', 'ai coding', 'copilot']
+        },
+        'marketing': {
+          categories: ['marketing', 'sales', 'ads', 'social media', 'advertising'],
+          tags: ['marketing', 'advertising', 'social', 'campaigns', 'ads', 'growth']
+        },
+        'automation': {
+          categories: ['automation', 'workflow', 'productivity', 'integration'],
+          tags: ['automation', 'workflow', 'integration', 'zapier', 'no-code']
+        },
+        'research': {
+          categories: ['research', 'data', 'analytics', 'intelligence'],
+          tags: ['research', 'data', 'analysis', 'insights', 'intelligence']
+        },
+        'image': {
+          categories: ['media', 'design', 'image', 'visual', 'art', 'creative'],
+          tags: ['image', 'design', 'art', 'visual', 'creative', 'generation', 'dalle', 'midjourney']
+        }
+      }
+
+      const criteria = goalCriteria[goal]
+      if (!criteria) return 0
+
+      // Check category match (flexible partial matching)
+      const categoryMatch = criteria.categories.some(keyword =>
+        category.includes(keyword) || keyword.split(' ').some(part => category.includes(part))
+      )
+      if (categoryMatch) score += 50
+
+      // Check tags match
+      const tagMatch = tags.some(tag =>
+        criteria.tags.some(keyword => tag.includes(keyword) || keyword.includes(tag))
+      )
+      if (tagMatch) score += 30
+
+      return score
+    }
+
     tools.forEach((tool) => {
       let score = 0
       const category = tool.category?.toLowerCase() || ''
 
-      // Goal ↔ category
-      if (answers.goal === 'content' && category.includes('writing'))
-        score += 30
-      if (answers.goal === 'marketing' && category.includes('marketing'))
-        score += 30
-      if (answers.goal === 'automation' && category.includes('automation'))
-        score += 30
-      if (answers.goal === 'research' && category.includes('research'))
-        score += 30
-      if (answers.goal === 'image' && category.includes('image')) score += 30
-      if (answers.goal === 'chatbot' && category.includes('chat')) score += 30
-      if (answers.goal === 'coding' && category.includes('code')) score += 30
+      // Goal ↔ category matching
+      if (answers.goal === 'content' && (category === 'writing' || category === 'seo' || category === 'social-media')) score += 50
+      if (answers.goal === 'marketing' && (category === 'marketing' || category === 'sales' || category === 'ads')) score += 50
+      if (answers.goal === 'automation' && (category === 'automation' || category === 'workflow' || category === 'productivity')) score += 50
+      if (answers.goal === 'research' && (category === 'research' || category === 'data')) score += 50
+      if (answers.goal === 'coding' && (category === 'coding' || category === 'developer-tools')) score += 50
+      if (answers.goal === 'image' && (category === 'media' || category === 'design' || category === 'video')) score += 50
+      if (answers.goal === 'chatbot' && (category === 'chatbot' || category === 'customer-support')) score += 50
 
-      // Use case ↔ category
-      if (answers.useCase === 'seo' && category.includes('seo')) score += 30
-      if (answers.useCase === 'blog' && category.includes('writing'))
-        score += 20
-      if (
-        answers.useCase === 'social' &&
-        (category.includes('writing') || category.includes('image'))
-      )
-        score += 20
-      if (answers.useCase === 'email' && category.includes('writing'))
-        score += 15
-      if (
-        answers.useCase === 'ads' &&
-        (category.includes('writing') || category.includes('marketing'))
-      )
-        score += 20
-      if (answers.useCase === 'all') score += 10
+      // Priority adjustments
+      if (answers.priority === 'speed' && (category === 'automation' || category === 'writing')) score += 20
+      if (answers.priority === 'seo' && (category === 'seo' || category === 'writing')) score += 30
+      if (answers.priority === 'integrations' && (category === 'automation' || category === 'crm')) score += 25
+      if (answers.priority === 'quality' && (category === 'writing' || category === 'image' || category === 'coding')) score += 15
 
-      // Experience – small bias
-      if (
-        answers.experience === 'advanced' &&
-        tool.review_count &&
-        tool.review_count > 3000
-      ) {
-        score += 10
-      }
-      if (
-        answers.experience === 'beginner' &&
-        tool.review_count &&
-        tool.review_count < 1000
-      ) {
-        score += 5
-      }
-
-      // Priority – quality: higher rating
-      if (answers.priority === 'quality' && typeof tool.rating === 'number') {
-        if (tool.rating >= 4.7) score += 15
-        else if (tool.rating >= 4.5) score += 10
-      }
-
-      // Priority – SEO: prefer SEO tools
-      if (answers.priority === 'seo' && category.includes('seo')) {
-        score += 20
-      }
-
-      // Priority – speed: writing / automation tools get a small boost
-      if (
-        answers.priority === 'speed' &&
-        (category.includes('writing') || category.includes('automation'))
-      ) {
-        score += 10
-      }
+      // Experience Level adjustment (subtle)
+      if (answers.experience === 'beginner' && (category.includes('lite') || category.includes('basic'))) score += 10
+      if (answers.experience === 'advanced' && (category.includes('pro') || category.includes('dev'))) score += 10
 
       // Only include tools with some positive score
       if (score > 0) {
         recs.push({
           name: tool.name,
           slug: tool.slug,
-          reason: `Good fit based on your answers and this tool's category (${tool.category}).`,
-          match: Math.min(95, 50 + score), // clamp to max 95
+          reason: `Matches your goal for ${answers.goal} and ${answers.priority} priority.`,
+          match: Math.min(98, 60 + score), // clamp to max 98
         })
       }
     })
 
-    // Remove duplicates and sort by match
-    const uniqueRecs = Array.from(
-      new Map(recs.map((item) => [item.slug, item])).values()
-    ).sort((a, b) => b.match - a.match)
-
-    return uniqueRecs.slice(0, 3)
+    // Sort by match and return top 3
+    return recs
+      .sort((a, b) => b.match - a.match)
+      .slice(0, 3)
   }
 
   const recommendations = hasSubmittedEmail ? getRecommendations() : []
@@ -212,7 +244,7 @@ export default function QuizClient({ tools }: QuizClientProps) {
               Home
             </Link>
             <span>/</span>
-            <span className="text-white">AI Tool Finder</span>
+            <span className="text-white">Agent Matchmaker</span>
           </div>
 
           <div className="text-center">
@@ -221,18 +253,17 @@ export default function QuizClient({ tools }: QuizClientProps) {
                 <span className="absolute inline-flex h-2 w-2 animate-ping rounded-full bg-cyan-400 opacity-75"></span>
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-cyan-400"></span>
               </span>
-              Personalized in 60 seconds
+              AI Agent Matchmaker
             </div>
 
             <h1 className="text-4xl md:text-5xl font-extrabold text-white mb-4">
               Find Your Perfect{' '}
               <span className="bg-gradient-to-r from-cyan-400 to-indigo-400 bg-clip-text text-transparent">
-                AI Tool Match
+                Autonomous Agent
               </span>
             </h1>
             <p className="text-lg text-slate-300 max-w-2xl mx-auto">
-              Answer 6 quick questions and get expert recommendations tailored
-              to your goals, budget, and experience level.
+              Answer 5 quick questions to build your ideal autonomous workforce stack.
             </p>
           </div>
 
@@ -240,26 +271,15 @@ export default function QuizClient({ tools }: QuizClientProps) {
           <div className="mt-8">
             <div className="flex items-center justify-between text-xs text-slate-400 mb-3">
               <span className="font-semibold text-white">
-                {step === totalSteps ? 'Get Results' : `Question ${step} of 6`}
+                {step === totalSteps ? 'Generating Stack...' : `Step ${step} of ${totalSteps - 1}`}
               </span>
-              <span>{Math.round((step / totalSteps) * 100)}% Complete</span>
+              <span>{Math.round(((step - 1) / (totalSteps - 1)) * 100)}% Complete</span>
             </div>
             <div className="h-2 rounded-full bg-slate-800/80 overflow-hidden shadow-inner">
               <div
                 className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 transition-all duration-500 ease-out rounded-full"
-                style={{ width: `${(step / totalSteps) * 100}%` }}
+                style={{ width: `${((step - 1) / (totalSteps - 1)) * 100}%` }}
               />
-            </div>
-
-            <div className="flex justify-between mt-2">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div
-                  key={i}
-                  className={`w-2 h-2 rounded-full transition-all ${
-                    i + 1 <= step ? 'bg-cyan-500 scale-110' : 'bg-slate-700'
-                  }`}
-                />
-              ))}
             </div>
           </div>
         </div>
@@ -268,106 +288,57 @@ export default function QuizClient({ tools }: QuizClientProps) {
       {/* Quiz Body */}
       <section className="px-4 py-12">
         <div
-          className={`mx-auto max-w-3xl transition-opacity duration-150 ${
-            isAnimating ? 'opacity-50' : 'opacity-100'
-          }`}
+          className={`mx-auto max-w-3xl transition-all duration-300 transform ${isAnimating ? 'opacity-0 translate-x-4' : 'opacity-100 translate-x-0'
+            }`}
         >
-          <div className="bg-slate-900/80 backdrop-blur-sm border border-slate-800/80 rounded-3xl p-8 md:p-10 shadow-2xl">
+          <div className="bg-slate-900/80 backdrop-blur-sm border border-slate-800/80 rounded-3xl p-8 md:p-10 shadow-2xl relative overflow-hidden">
+            {/* Background Glow */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/5 rounded-full blur-[80px] pointer-events-none" />
+
             {/* Q1: Goal */}
             {step === 1 && (
               <div className="animate-fadeIn">
                 <div className="mb-8">
                   <div className="text-5xl mb-4">🎯</div>
                   <h2 className="text-3xl font-bold text-white mb-3">
-                    What&apos;s your primary goal?
+                    What is your primary objective?
                   </h2>
                   <p className="text-slate-400 text-lg">
-                    This helps us recommend tools built for your specific use
-                    case.
+                    We&apos;ll identify agents specialized in your core mission.
                   </p>
                 </div>
 
                 <div className="grid gap-4">
                   {[
-                    {
-                      value: 'content',
-                      label: 'Create Content',
-                      desc: 'Blogs, articles, landing pages, emails',
-                    },
-                    {
-                      value: 'marketing',
-                      label: 'Marketing & Ads',
-                      desc: 'Social posts, ad copy, product descriptions',
-                    },
-                    {
-                      value: 'automation',
-                      label: 'Workflow Automation',
-                      desc: 'Streamline tasks and boost productivity',
-                    },
-                    {
-                      value: 'research',
-                      label: 'Research & Analysis',
-                      desc: 'Data insights, summaries, and reports',
-                    },
-                    {
-                      value: 'image',
-                      label: 'Images & Design',
-                      desc: 'Create images, thumbnails, and visuals',
-                    },
-                    {
-                      value: 'chatbot',
-                      label: 'Chatbots & Assistants',
-                      desc: 'Answer questions, support, and research',
-                    },
-                    {
-                      value: 'coding',
-                      label: 'AI Coding Help',
-                      desc: 'Code generation, refactoring, debugging',
-                    },
+                    { value: 'content', label: 'Content Production', desc: 'Blogs, social, copy' },
+                    { value: 'marketing', label: 'Growth Marketing', desc: 'Ads, viral campaigns' },
+                    { value: 'automation', label: 'Workflow Automation', desc: 'Connect apps, save time' },
+                    { value: 'research', label: 'Deep Research', desc: 'Analysis, reports, data' },
+                    { value: 'coding', label: 'Software Engineering', desc: 'Code, debug, deploy' },
+                    { value: 'image', label: 'Visual Design', desc: 'Images, UI, assets' },
                   ].map((option) => (
                     <button
                       key={option.value}
-                      onClick={() =>
-                        setAnswers((a) => ({ ...a, goal: option.value }))
-                      }
-                      className={`group relative text-left px-6 py-5 rounded-xl border-2 transition-all ${
-                        answers.goal === option.value
-                          ? 'border-cyan-500 bg-cyan-500/10 shadow-lg shadow-cyan-500/20'
-                          : 'border-slate-700 bg-slate-900/60 hover:border-cyan-500/50 hover:bg-slate-900'
-                      }`}
+                      onClick={() => handleSelection({ goal: option.value })}
+                      className={`group relative text-left px-6 py-5 rounded-xl border-2 transition-all ${answers.goal === option.value
+                        ? 'border-cyan-500 bg-cyan-500/10 shadow-lg shadow-cyan-500/20'
+                        : 'border-slate-700 bg-slate-900/60 hover:border-cyan-500/50 hover:bg-slate-900'
+                        }`}
                     >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <div>
                           <h3 className="text-lg font-semibold text-white mb-1 group-hover:text-cyan-300 transition">
                             {option.label}
                           </h3>
-                          <p className="text-sm text-slate-400">
-                            {option.desc}
-                          </p>
+                          <p className="text-sm text-slate-400">{option.desc}</p>
                         </div>
-                        <div
-                          className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-1 transition ${
-                            answers.goal === option.value
-                              ? 'border-cyan-500 bg-cyan-500'
-                              : 'border-slate-600'
-                          }`}
-                        >
-                          {answers.goal === option.value && (
-                            <svg
-                              className="w-4 h-4 text-white"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={3}
-                                d="M5 13l4 4L19 7"
-                              />
+                        {answers.goal === option.value && (
+                          <div className="w-6 h-6 rounded-full bg-cyan-500 flex items-center justify-center">
+                            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                             </svg>
-                          )}
-                        </div>
+                          </div>
+                        )}
                       </div>
                     </button>
                   ))}
@@ -381,78 +352,29 @@ export default function QuizClient({ tools }: QuizClientProps) {
                 <div className="mb-8">
                   <div className="text-5xl mb-4">👥</div>
                   <h2 className="text-3xl font-bold text-white mb-3">
-                    Who will use this tool?
+                    Who is this agent for?
                   </h2>
-                  <p className="text-slate-400 text-lg">
-                    Team features and collaboration needs vary by size.
-                  </p>
                 </div>
 
                 <div className="grid gap-4">
                   {[
-                    {
-                      value: 'solo',
-                      label: 'Just Me',
-                      desc: 'Individual creator or freelancer',
-                    },
-                    {
-                      value: 'small',
-                      label: 'Small Team',
-                      desc: '2-5 people collaborating',
-                    },
-                    {
-                      value: 'team',
-                      label: 'Growing Team',
-                      desc: '6-20 people with shared workflows',
-                    },
-                    {
-                      value: 'enterprise',
-                      label: 'Enterprise',
-                      desc: '20+ users, advanced admin needs',
-                    },
+                    { value: 'solo', label: 'Just Me (Solo Founder)', desc: 'Maximizing personal leverage' },
+                    { value: 'small', label: 'Small Team (2-10)', desc: 'Collaborative workflows' },
+                    { value: 'team', label: 'Growth Stage (11-50)', desc: 'Scaling operations' },
+                    { value: 'enterprise', label: 'Enterprise (50+)', desc: 'Compliance & security' },
                   ].map((option) => (
                     <button
                       key={option.value}
-                      onClick={() =>
-                        setAnswers((a) => ({ ...a, teamSize: option.value }))
-                      }
-                      className={`group relative text-left px-6 py-5 rounded-xl border-2 transition-all ${
-                        answers.teamSize === option.value
-                          ? 'border-cyan-500 bg-cyan-500/10 shadow-lg shadow-cyan-500/20'
-                          : 'border-slate-700 bg-slate-900/60 hover:border-cyan-500/50 hover:bg-slate-900'
-                      }`}
+                      onClick={() => handleSelection({ teamSize: option.value })}
+                      className={`group relative text-left px-6 py-5 rounded-xl border-2 transition-all ${answers.teamSize === option.value
+                        ? 'border-cyan-500 bg-cyan-500/10 shadow-lg shadow-cyan-500/20'
+                        : 'border-slate-700 bg-slate-900/60 hover:border-cyan-500/50 hover:bg-slate-900'
+                        }`}
                     >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h3 className="text-lg font-semibold text-white mb-1 group-hover:text-cyan-300 transition">
-                            {option.label}
-                          </h3>
-                          <p className="text-sm text-slate-400">
-                            {option.desc}
-                          </p>
-                        </div>
-                        <div
-                          className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-1 transition ${
-                            answers.teamSize === option.value
-                              ? 'border-cyan-500 bg-cyan-500'
-                              : 'border-slate-600'
-                          }`}
-                        >
-                          {answers.teamSize === option.value && (
-                            <svg
-                              className="w-4 h-4 text-white"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={3}
-                                d="M5 13l4 4L19 7"
-                              />
-                            </svg>
-                          )}
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-lg font-semibold text-white mb-1 group-hover:text-cyan-300 transition">{option.label}</h3>
+                          <p className="text-sm text-slate-400">{option.desc}</p>
                         </div>
                       </div>
                     </button>
@@ -467,83 +389,29 @@ export default function QuizClient({ tools }: QuizClientProps) {
                 <div className="mb-8">
                   <div className="text-5xl mb-4">💰</div>
                   <h2 className="text-3xl font-bold text-white mb-3">
-                    What&apos;s your monthly budget?
+                    What is your monthly budget?
                   </h2>
-                  <p className="text-slate-400 text-lg">
-                    We&apos;ll recommend tools that fit your price range.
-                  </p>
                 </div>
 
                 <div className="grid gap-4">
                   {[
-                    {
-                      value: 'free',
-                      label: 'Free / Freemium',
-                      desc: 'Limited features, no cost',
-                    },
-                    {
-                      value: 'low',
-                      label: 'Under $50/month',
-                      desc: 'Budget-friendly starter plans',
-                    },
-                    {
-                      value: 'medium',
-                      label: '$50-$150/month',
-                      desc: 'Professional tier features',
-                    },
-                    {
-                      value: 'high',
-                      label: '$150+/month',
-                      desc: 'Premium tools, enterprise features',
-                    },
-                    {
-                      value: 'flexible',
-                      label: 'ROI Matters Most',
-                      desc: 'Budget is flexible for the right tool',
-                    },
+                    { value: 'free', label: 'Free / Freemium', desc: 'Exploring capabilities' },
+                    { value: 'low', label: 'Under $50/mo', desc: 'Essential tools' },
+                    { value: 'medium', label: '$50 - $200/mo', desc: 'Pro professional stack' },
+                    { value: 'high', label: '$200+/mo', desc: 'Serious scale' },
                   ].map((option) => (
                     <button
                       key={option.value}
-                      onClick={() =>
-                        setAnswers((a) => ({ ...a, budget: option.value }))
-                      }
-                      className={`group relative text-left px-6 py-5 rounded-xl border-2 transition-all ${
-                        answers.budget === option.value
-                          ? 'border-cyan-500 bg-cyan-500/10 shadow-lg shadow-cyan-500/20'
-                          : 'border-slate-700 bg-slate-900/60 hover:border-cyan-500/50 hover:bg-slate-900'
-                      }`}
+                      onClick={() => handleSelection({ budget: option.value })}
+                      className={`group relative text-left px-6 py-5 rounded-xl border-2 transition-all ${answers.budget === option.value
+                        ? 'border-cyan-500 bg-cyan-500/10 shadow-lg shadow-cyan-500/20'
+                        : 'border-slate-700 bg-slate-900/60 hover:border-cyan-500/50 hover:bg-slate-900'
+                        }`}
                     >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h3 className="text-lg font-semibold text-white mb-1 group-hover:text-cyan-300 transition">
-                            {option.label}
-                          </h3>
-                          <p className="text-sm text-slate-400">
-                            {option.desc}
-                          </p>
-                        </div>
-                        <div
-                          className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-1 transition ${
-                            answers.budget === option.value
-                              ? 'border-cyan-500 bg-cyan-500'
-                              : 'border-slate-600'
-                          }`}
-                        >
-                          {answers.budget === option.value && (
-                            <svg
-                              className="w-4 h-4 text-white"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={3}
-                                d="M5 13l4 4L19 7"
-                              />
-                            </svg>
-                          )}
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-lg font-semibold text-white mb-1 group-hover:text-cyan-300 transition">{option.label}</h3>
+                          <p className="text-sm text-slate-400">{option.desc}</p>
                         </div>
                       </div>
                     </button>
@@ -558,76 +426,28 @@ export default function QuizClient({ tools }: QuizClientProps) {
                 <div className="mb-8">
                   <div className="text-5xl mb-4">⚡</div>
                   <h2 className="text-3xl font-bold text-white mb-3">
-                    Your AI experience level?
+                    Your familiarity with AI Agents?
                   </h2>
-                  <p className="text-slate-400 text-lg">
-                    We&apos;ll match you with tools that fit your comfort zone.
-                  </p>
                 </div>
 
                 <div className="grid gap-4">
                   {[
-                    {
-                      value: 'beginner',
-                      label: 'Just Starting Out',
-                      desc: 'New to AI tools, need simple interfaces',
-                    },
-                    {
-                      value: 'intermediate',
-                      label: 'Some Experience',
-                      desc: 'Used a few AI tools, comfortable learning',
-                    },
-                    {
-                      value: 'advanced',
-                      label: 'Power User',
-                      desc: 'Daily AI user, want advanced features',
-                    },
+                    { value: 'beginner', label: 'Newbie', desc: 'I need simple, guided tools' },
+                    { value: 'intermediate', label: 'Explorer', desc: 'I have used ChatGPT/Claude' },
+                    { value: 'advanced', label: 'Architect', desc: 'I build custom workflows' },
                   ].map((option) => (
                     <button
                       key={option.value}
-                      onClick={() =>
-                        setAnswers((a) => ({
-                          ...a,
-                          experience: option.value,
-                        }))
-                      }
-                      className={`group relative text-left px-6 py-5 rounded-xl border-2 transition-all ${
-                        answers.experience === option.value
-                          ? 'border-cyan-500 bg-cyan-500/10 shadow-lg shadow-cyan-500/20'
-                          : 'border-slate-700 bg-slate-900/60 hover:border-cyan-500/50 hover:bg-slate-900'
-                      }`}
+                      onClick={() => handleSelection({ experience: option.value })}
+                      className={`group relative text-left px-6 py-5 rounded-xl border-2 transition-all ${answers.experience === option.value
+                        ? 'border-cyan-500 bg-cyan-500/10 shadow-lg shadow-cyan-500/20'
+                        : 'border-slate-700 bg-slate-900/60 hover:border-cyan-500/50 hover:bg-slate-900'
+                        }`}
                     >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h3 className="text-lg font-semibold text-white mb-1 group-hover:text-cyan-300 transition">
-                            {option.label}
-                          </h3>
-                          <p className="text-sm text-slate-400">
-                            {option.desc}
-                          </p>
-                        </div>
-                        <div
-                          className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-1 transition ${
-                            answers.experience === option.value
-                              ? 'border-cyan-500 bg-cyan-500'
-                              : 'border-slate-600'
-                          }`}
-                        >
-                          {answers.experience === option.value && (
-                            <svg
-                              className="w-4 h-4 text-white"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={3}
-                                d="M5 13l4 4L19 7"
-                              />
-                            </svg>
-                          )}
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-lg font-semibold text-white mb-1 group-hover:text-cyan-300 transition">{option.label}</h3>
+                          <p className="text-sm text-slate-400">{option.desc}</p>
                         </div>
                       </div>
                     </button>
@@ -636,378 +456,168 @@ export default function QuizClient({ tools }: QuizClientProps) {
               </div>
             )}
 
-            {/* Q5: Use Case */}
+            {/* Q5: Priority (Moved from Step 6) */}
             {step === 5 && (
               <div className="animate-fadeIn">
                 <div className="mb-8">
-                  <div className="text-5xl mb-4">🚀</div>
+                  <div className="text-5xl mb-4">💎</div>
                   <h2 className="text-3xl font-bold text-white mb-3">
-                    Most important use case?
+                    What matters most?
                   </h2>
-                  <p className="text-slate-400 text-lg">
-                    What will you use this tool for most often?
-                  </p>
                 </div>
 
                 <div className="grid gap-4">
                   {[
-                    {
-                      value: 'blog',
-                      label: 'Blog Writing',
-                      desc: 'Long-form articles and SEO content',
-                    },
-                    {
-                      value: 'social',
-                      label: 'Social Media',
-                      desc: 'Posts, captions, engagement content',
-                    },
-                    {
-                      value: 'seo',
-                      label: 'SEO Optimization',
-                      desc: 'Keyword research and rankings',
-                    },
-                    {
-                      value: 'ads',
-                      label: 'Ad Copy',
-                      desc: 'PPC campaigns, landing pages, CTAs',
-                    },
-                    {
-                      value: 'email',
-                      label: 'Email Marketing',
-                      desc: 'Newsletters, sequences, campaigns',
-                    },
-                    {
-                      value: 'all',
-                      label: 'All of the Above',
-                      desc: 'Need a versatile all-in-one solution',
-                    },
+                    { value: 'quality', label: 'Output Quality', desc: 'Zero-hallucination, high polish' },
+                    { value: 'speed', label: 'Speed & Volume', desc: 'Rapid execution involved' },
+                    { value: 'integrations', label: 'Integrations', desc: 'Must connect to my stack' },
+                    { value: 'collaboration', label: 'Team Features', desc: 'Multi-player mode' },
                   ].map((option) => (
                     <button
                       key={option.value}
-                      onClick={() =>
-                        setAnswers((a) => ({ ...a, useCase: option.value }))
-                      }
-                      className={`group relative text-left px-6 py-5 rounded-xl border-2 transition-all ${
-                        answers.useCase === option.value
-                          ? 'border-cyan-500 bg-cyan-500/10 shadow-lg shadow-cyan-500/20'
-                          : 'border-slate-700 bg-slate-900/60 hover:border-cyan-500/50 hover:bg-slate-900'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h3 className="text-lg font-semibold text-white mb-1 group-hover:text-cyan-300 transition">
-                            {option.label}
-                          </h3>
-                          <p className="text-sm text-slate-400">
-                            {option.desc}
-                          </p>
-                        </div>
-                        <div
-                          className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-1 transition ${
-                            answers.useCase === option.value
-                              ? 'border-cyan-500 bg-cyan-500'
-                              : 'border-slate-600'
-                          }`}
-                        >
-                          {answers.useCase === option.value && (
-                            <svg
-                              className="w-4 h-4 text-white"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={3}
-                                d="M5 13l4 4L19 7"
-                              />
-                            </svg>
-                          )}
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Q6: Priority */}
-            {step === 6 && (
-              <div className="animate-fadeIn">
-                <div className="mb-8">
-                  <div className="text-5xl mb-4">🎯</div>
-                  <h2 className="text-3xl font-bold text-white mb-3">
-                    Top priority feature?
-                  </h2>
-                  <p className="text-slate-400 text-lg">
-                    What matters most in your ideal AI tool?
-                  </p>
-                </div>
-
-                <div className="grid gap-4">
-                  {[
-                    {
-                      value: 'quality',
-                      label: 'Output Quality',
-                      desc: 'Best writing, minimal editing needed',
-                    },
-                    {
-                      value: 'speed',
-                      label: 'Speed & Volume',
-                      desc: 'Generate content fast at scale',
-                    },
-                    {
-                      value: 'seo',
-                      label: 'SEO Features',
-                      desc: 'Built-in optimization and rankings',
-                    },
-                    {
-                      value: 'collaboration',
-                      label: 'Team Collaboration',
-                      desc: 'Shared workspaces and workflows',
-                    },
-                    {
-                      value: 'integrations',
-                      label: 'Integrations',
-                      desc: 'Connect with my existing tools',
-                    },
-                  ].map((option) => (
-                    <button
-                      key={option.value}
-                      onClick={() =>
-                        setAnswers((a) => ({ ...a, priority: option.value }))
-                      }
-                      className={`group relative text-left px-6 py-5 rounded-xl border-2 transition-all ${
-                        answers.priority === option.value
-                          ? 'border-cyan-500 bg-cyan-500/10 shadow-lg shadow-cyan-500/20'
-                          : 'border-slate-700 bg-slate-900/60 hover:border-cyan-500/50 hover:bg-slate-900'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h3 className="text-lg font-semibold text-white mb-1 group-hover:text-cyan-300 transition">
-                            {option.label}
-                          </h3>
-                          <p className="text-sm text-slate-400">
-                            {option.desc}
-                          </p>
-                        </div>
-                        <div
-                          className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-1 transition ${
-                            answers.priority === option.value
-                              ? 'border-cyan-500 bg-cyan-500'
-                              : 'border-slate-600'
-                          }`}
-                        >
-                          {answers.priority === option.value && (
-                            <svg
-                              className="w-4 h-4 text-white"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={3}
-                                d="M5 13l4 4L19 7"
-                              />
-                            </svg>
-                          )}
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Step 7: Email & Results */}
-            {step === 7 && (
-              <div className="animate-fadeIn">
-                {!hasSubmittedEmail ? (
-                  <>
-                    <div className="text-center mb-8">
-                      <div className="text-6xl mb-6">🎉</div>
-                      <h2 className="text-3xl font-bold text-white mb-3">
-                        Your Perfect Match Awaits!
-                      </h2>
-                      <p className="text-lg text-slate-300 max-w-xl mx-auto">
-                        Enter your email to unlock your personalized AI tool
-                        recommendations and get exclusive deals.
-                      </p>
-                    </div>
-
-                    <form
-                      onSubmit={handleEmailSubmit}
-                      className="max-w-md mx-auto space-y-5"
-                    >
-                      <div>
-                        <input
-                          type="email"
-                          value={answers.email}
-                          onChange={(e) =>
-                            setAnswers((a) => ({
-                              ...a,
-                              email: e.target.value,
-                            }))
-                          }
-                          placeholder="your@email.com"
-                          className="w-full px-6 py-4 rounded-xl bg-slate-950/70 border-2 border-slate-700 text-white text-lg placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-4 focus:ring-cyan-500/20 transition"
-                          required
-                        />
-                      </div>
-
-                      <button
-                        type="submit"
-                        disabled={!emailValid}
-                        className={`w-full px-8 py-4 rounded-xl text-lg font-bold transition-all ${
-                          emailValid
-                            ? 'bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white shadow-2xl shadow-cyan-500/50 hover:scale-105'
-                            : 'bg-slate-700 text-slate-500 cursor-not-allowed'
+                      onClick={() => handleSelection({ priority: option.value })}
+                      className={`group relative text-left px-6 py-5 rounded-xl border-2 transition-all ${answers.priority === option.value
+                        ? 'border-cyan-500 bg-cyan-500/10 shadow-lg shadow-cyan-500/20'
+                        : 'border-slate-700 bg-slate-900/60 hover:border-cyan-500/50 hover:bg-slate-900'
                         }`}
-                      >
-                        Show My Recommendations →
-                      </button>
-
-                      <p className="text-sm text-slate-500 text-center">
-                        🔒 No spam. Unsubscribe anytime. Your data is safe with
-                        us.
-                      </p>
-                    </form>
-                  </>
-                ) : (
-                  <>
-                    <div className="text-center mb-10">
-                      <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-500/20 border-2 border-green-500 mb-4">
-                        <svg
-                          className="w-8 h-8 text-green-400"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={3}
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-lg font-semibold text-white mb-1 group-hover:text-cyan-300 transition">{option.label}</h3>
+                          <p className="text-sm text-slate-400">{option.desc}</p>
+                        </div>
                       </div>
-                      <h2 className="text-3xl font-bold text-white mb-3">
-                        Your Perfect Matches
-                      </h2>
-                      <p className="text-lg text-slate-300 max-w-2xl mx-auto">
-                        Based on your answers, here are the AI tools that best
-                        fit your needs. Check your inbox for the full report!
-                      </p>
-                    </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
-                    <div className="space-y-5 mb-8">
-                      {recommendations.map((rec, index) => (
-                        <div
-                          key={rec.slug}
-                          className="group relative bg-gradient-to-br from-slate-900 to-slate-900/50 border border-slate-700 hover:border-cyan-500/60 rounded-2xl p-6 transition-all hover:scale-[1.02] hover:shadow-2xl hover:shadow-cyan-500/20"
-                        >
-                          <div className="flex items-start justify-between mb-4">
-                            <div className="flex items-center gap-3">
-                              <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 text-white font-bold text-xl">
-                                #{index + 1}
-                              </div>
-                              <div>
-                                <h3 className="text-2xl font-bold text-white group-hover:text-cyan-400 transition">
-                                  {rec.name}
-                                </h3>
-                                <div className="flex items-center gap-2 mt-1">
-                                  <div className="flex items-center gap-1">
-                                    {Array.from({ length: 5 }).map((_, i) => (
-                                      <svg
-                                        key={i}
-                                        className="w-4 h-4 text-yellow-400"
-                                        fill="currentColor"
-                                        viewBox="0 0 20 20"
-                                      >
-                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                                      </svg>
-                                    ))}
-                                  </div>
-                                  <span className="px-2 py-0.5 rounded-full bg-green-500/20 text-green-300 text-xs font-bold border border-green-500/30">
-                                    {rec.match}% Match
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
+            {/* Step 6: Email / Results */}
+            {step === 6 && !hasSubmittedEmail && (
+              <div className="animate-fadeIn">
+                <div className="text-center mb-8">
+                  <div className="text-6xl mb-6 animate-bounce">🎁</div>
+                  <h2 className="text-3xl font-bold text-white mb-3">
+                    Your Agent Stack is Ready
+                  </h2>
+                  <p className="text-slate-400 text-lg">
+                    We&apos;ve curated the top 3 autonomous agents for your mission.
+                    Where should we send your blueprint?
+                  </p>
+                </div>
+
+                <form onSubmit={handleEmailSubmit} className="space-y-4">
+                  <div>
+                    <input
+                      type="email"
+                      placeholder="Enter your email address"
+                      value={answers.email}
+                      onChange={(e) =>
+                        setAnswers((a) => ({ ...a, email: e.target.value }))
+                      }
+                      className="w-full px-6 py-4 rounded-xl bg-slate-950 border-2 border-slate-800 focus:border-cyan-500 text-white outline-none transition placeholder-slate-600"
+                      required
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={!emailValid}
+                    className={`w-full py-5 rounded-xl font-bold text-white transition-all shadow-xl group border border-transparent ${emailValid
+                      ? 'bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 shadow-cyan-500/20'
+                      : 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                      }`}
+                  >
+                    <span className="flex items-center justify-center gap-2">
+                      Reveal My Matches <span className="group-hover:translate-x-1 transition-transform">→</span>
+                    </span>
+                  </button>
+                  <p className="text-xs text-slate-500 text-center mt-4">
+                    Strictly no spam. Unsubscribe anytime.
+                  </p>
+                </form>
+              </div>
+            )}
+
+            {/* Results Page */}
+            {hasSubmittedEmail && (
+              <div className="animate-fadeIn">
+                <div className="text-center mb-10">
+                  <div className="text-5xl mb-4">✨</div>
+                  <h2 className="text-3xl font-bold text-white mb-2">
+                    Your Perfect AI Matches
+                  </h2>
+                  <p className="text-slate-400">
+                    Based on your needs, these tool recommendations
+                    will give you the highest ROI.
+                  </p>
+                </div>
+
+                <div className="space-y-6">
+                  {recommendations.length > 0 ? (
+                    recommendations.map((rec, idx) => (
+                      <div
+                        key={rec.slug}
+                        className={`relative p-6 rounded-2xl border transition-all ${idx === 0
+                          ? 'bg-slate-800/40 border-cyan-500/50 ring-1 ring-cyan-500/20'
+                          : 'bg-slate-900/40 border-slate-800'
+                          }`}
+                      >
+                        {idx === 0 && (
+                          <div className="absolute -top-3 left-6 px-3 py-1 rounded-full bg-cyan-500 text-[10px] font-bold text-white uppercase tracking-wider">
+                            Best Match
                           </div>
-
-                          <p className="text-slate-300 text-base leading-relaxed mb-4">
-                            {rec.reason}
-                          </p>
-
+                        )}
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                          <div>
+                            <div className="flex items-center gap-3 mb-1">
+                              <h3 className="text-xl font-bold text-white">
+                                {rec.name}
+                              </h3>
+                              <span className="px-2 py-0.5 rounded bg-slate-800 text-cyan-400 text-xs font-mono">
+                                {rec.match}% Match
+                              </span>
+                            </div>
+                            <p className="text-slate-400 text-sm italic">
+                              &quot;{rec.reason}&quot;
+                            </p>
+                          </div>
                           <Link
                             href={`/tools/${rec.slug}`}
-                            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 font-semibold hover:bg-cyan-500/20 hover:border-cyan-400 transition group/btn"
+                            className="inline-flex items-center justify-center px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold transition-all border border-slate-700"
                           >
-                            <span>View Full Review</span>
-                            <span className="group-hover/btn:translate-x-1 transition-transform">
-                              →
-                            </span>
+                            Read Review
                           </Link>
                         </div>
-                      ))}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-12 bg-slate-900/40 rounded-2xl border border-dashed border-slate-700 text-slate-400">
+                      We couldn&apos;t find an exact match in our top-tier list.
+                      Stay tuned as we add new tools daily!
                     </div>
+                  )}
+                </div>
 
-                    <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                      <Link
-                        href="/tools"
-                        className="px-8 py-3 rounded-xl bg-slate-800 border border-slate-700 text-white font-semibold hover:bg-slate-700 hover:border-slate-600 transition text-center"
-                      >
-                        Browse All Tools
-                      </Link>
-                      <button
-                        onClick={resetQuiz}
-                        className="px-8 py-3 rounded-xl border-2 border-slate-700 text-slate-300 font-semibold hover:border-cyan-500/50 hover:text-white transition"
-                      >
-                        Retake Quiz
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
-
-            {/* Navigation */}
-            {step < 7 && (
-              <div className="mt-10 pt-8 border-t border-slate-800 flex items-center justify-between">
-                <button
-                  onClick={goBack}
-                  disabled={step === 1}
-                  className={`flex items-center gap-2 px-6 py-3 rounded-xl text-base font-semibold transition ${
-                    step === 1
-                      ? 'text-slate-600 cursor-not-allowed'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700 hover:border-slate-600'
-                  }`}
-                >
-                  <span>←</span>
-                  <span>Back</span>
-                </button>
-
-                <button
-                  onClick={goNext}
-                  disabled={nextDisabled}
-                  className={`flex items-center gap-2 px-8 py-3 rounded-xl text-base font-bold transition-all ${
-                    nextDisabled
-                      ? 'bg-slate-700 text-slate-500 cursor-not-allowed'
-                      : 'bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white shadow-xl shadow-cyan-500/40 hover:scale-105'
-                  }`}
-                >
-                  <span>Continue</span>
-                  <span>→</span>
-                </button>
+                <div className="mt-12 text-center pt-8 border-t border-slate-800">
+                  <button
+                    onClick={resetQuiz}
+                    className="text-slate-400 hover:text-white transition underline underline-offset-4"
+                  >
+                    Retake Quiz
+                  </button>
+                </div>
               </div>
             )}
           </div>
         </div>
+      </section>
+
+      {/* Trust */}
+      <section className="px-4 py-12 text-center opacity-50">
+        <p className="text-xs text-slate-500 uppercase tracking-widest font-bold mb-6">
+          Independently Reviewed & Trusted
+        </p>
       </section>
     </div>
   )

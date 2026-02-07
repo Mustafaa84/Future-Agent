@@ -11,10 +11,12 @@ import FAQRepeater from '@/components/admin/repeaters/FAQRepeater'
 import ReviewSectionsRepeater from '@/components/admin/repeaters/ReviewSectionsRepeater'
 import WorkflowStepsRepeater from '@/components/admin/repeaters/WorkflowStepsRepeater'
 import ComparisonTableRepeater from '@/components/admin/repeaters/ComparisonTableRepeater'
+import IntegrationsRepeater from '@/components/admin/repeaters/IntegrationsRepeater'
 import AlternativesRepeater from '@/components/admin/repeaters/AlternativesRepeater'
 import CategorySelect from '@/components/admin/CategorySelect'
 import TagsSelect from '@/components/admin/TagsSelect'
 import ImageUpload from '@/components/ImageUpload'
+import { revalidateTool } from '@/app/actions/revalidate'
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 type Tool = any
@@ -240,6 +242,19 @@ export default function ToolForm({ mode, toolId }: ToolFormProps) {
           await supabase.from('tool_comparisons').insert(comparison)
         }
 
+        // Integrations
+        const integrationsData = (window as any).__integrationsData
+        if (integrationsData && integrationsData.length > 0) {
+          const integrations = integrationsData.map((d: any, index: number) => ({
+            tool_id: newToolId,
+            integration_name: d.integration_name,
+            integration_logo: d.integration_logo,
+            description: d.description,
+            sort_order: index,
+          }))
+          await supabase.from('tool_integrations').insert(integrations)
+        }
+
         // Review sections
         const reviewSectionsData = (window as any).__reviewSectionsData
         if (reviewSectionsData && reviewSectionsData.length > 0) {
@@ -265,6 +280,9 @@ export default function ToolForm({ mode, toolId }: ToolFormProps) {
           await supabase.from('tool_review_sections').insert(sections)
         }
       }
+
+      // Trigger On-Demand Revalidation (simplified - just revalidate the tool page and homepage)
+      await revalidateTool(payload.slug || '')
 
       router.push('/admin/tools')
       router.refresh()
@@ -299,488 +317,526 @@ export default function ToolForm({ mode, toolId }: ToolFormProps) {
   const t = tool || {}
 
   const inputClass =
-    'w-full px-4 py-3 bg-white/5 border-2 border-slate-600 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:border-cyan-400 focus:bg-white/10 transition-all'
+    'w-full px-4 py-3 bg-white/5 border-2 border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/50 focus:bg-white/10 transition-all font-medium'
   const textareaClass =
-    'w-full px-4 py-3 bg-white/5 border-2 border-slate-600 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:border-cyan-400 focus:bg-white/10 transition-all resize-vertical'
+    'w-full px-4 py-3 bg-white/5 border-2 border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/50 focus:bg-white/10 transition-all resize-vertical font-medium'
+
+  const sectionHeaderClass = "text-2xl font-black text-white italic mb-2 tracking-tight flex items-center gap-3"
+  const sectionDescClass = "text-slate-400 mb-8 text-sm font-medium"
+  const sectionCardClass = "bg-slate-900 border border-slate-800 rounded-[2rem] p-10 relative overflow-hidden group shadow-2xl"
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="max-w-7xl mx-auto px-4 py-12">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-12">
         <div>
-          <h1 className="text-4xl font-bold text-white mb-2">
-                      {isEdit ? `Edit ${t.name || 'Tool'}` : 'Add New AI Tool'}
+          <h1 className="text-5xl font-black text-white italic tracking-tighter mb-2">
+            {isEdit ? `Edit ${t.name || 'Tool'}` : 'Construct New Asset'}
           </h1>
-          <p className="text-slate-300">
-            Fill in all sections to create a complete tool review page
+          <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">
+            Future Agent Authority Report Builder
           </p>
         </div>
         <Link
           href="/admin/tools"
-          className="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl border border-slate-600 transition-all font-medium"
+          className="px-8 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl border border-slate-700 transition-all font-black uppercase tracking-widest text-xs italic"
         >
-          ← Back
+          ← Return to Assets
         </Link>
       </div>
 
       {/* Error Alert */}
       {error && (
-        <div className="mb-6 p-4 bg-red-900/30 border-2 border-red-600 rounded-xl text-red-200">
-          <strong>Error:</strong> {error}
+        <div className="mb-8 p-6 bg-red-900/10 border-2 border-red-500/50 rounded-2xl text-red-200 backdrop-blur-xl">
+          <strong className="font-black italic block mb-1">DEPLOYMENT_ERROR:</strong>
+          <span className="font-medium">{error}</span>
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-8">
+      <form onSubmit={handleSubmit} className="space-y-12">
         {/* 1. HERO SECTION */}
-        <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-8">
-          <h2 className="text-2xl font-bold text-white mb-2 flex items-center gap-3">
-            <span className="text-3xl">ℹ️</span>
-            Hero Section
-          </h2>
-          <p className="text-slate-300 mb-6 text-sm">Appears at the top of the review page</p>
+        <div className={sectionCardClass}>
+          <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/5 rounded-full -mr-32 -mt-32 blur-3xl"></div>
 
-          <div className="space-y-6">
-            {/* Tool Name */}
-            <div>
-              <label className="block text-sm font-semibold text-white mb-2">
-                Tool Name <span className="text-red-400">*</span>
-              </label>
-              <input
-                type="text"
-                name="name"
-                defaultValue={t.name || ''}
-                required
-                placeholder="e.g., ChatGPT, Midjourney"
-                className={inputClass}
-              />
-            </div>
+          <div className="relative">
+            <h2 className={sectionHeaderClass}>
+              <span className="w-8 h-8 rounded-lg bg-cyan-500/10 flex items-center justify-center text-lg not-italic">ℹ️</span>
+              Hero Configuration
+            </h2>
+            <p className={sectionDescClass}>Primary brand elements and above-the-fold content</p>
 
-            {/* Tool Logo Upload */}
-            <ImageUpload
-              currentImage={t.logo || ''}
-              onImageChange={(url) => {
-                const logoInput = document.querySelector(
-                  'input[name="logo"]',
-                ) as HTMLInputElement
-                if (logoInput) logoInput.value = url || ''
-              }}
-              folder="logos"
-              label="Tool Logo (or use emoji below)"
-            />
-
-            {/* Emoji fallback */}
-            <div>
-              <label className="block text-sm font-semibold text-white mb-2">
-                Logo Emoji (fallback if no image)
-              </label>
-              <input
-                type="text"
-                name="logo"
-                defaultValue={t.logo || ''}
-                placeholder="🤖"
-                className={`${inputClass} text-2xl text-center`}
-              />
-            </div>
-
-            {/* Rest of fields in grid */}
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2">
-                <label className="block text-sm font-semibold text-white mb-2">Tagline</label>
+            <div className="space-y-8">
+              {/* Tool Name */}
+              <div>
+                <label className="block text-xs font-black uppercase tracking-widest text-slate-500 mb-3 ml-1">
+                  Tool Identity <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="text"
-                  name="tagline"
-                  defaultValue={t.tagline || ''}
-                  placeholder="AI writing assistant that helps create content"
-                  className={inputClass}
-                />
-              </div>
-
-              <CategorySelect defaultValue={t.category || ''} required />
-
-              <div className="lg:col-span-3">
-                <label className="block text-sm font-semibold text-white mb-2">
-                  Description <span className="text-red-400">*</span>
-                </label>
-                <textarea
-                  name="description"
-                  defaultValue={t.description || ''}
+                  name="name"
+                  defaultValue={t.name || ''}
                   required
-                  rows={3}
-                  placeholder="Main description shown in hero section..."
-                  className={textareaClass}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-white mb-2">Rating (0-5)</label>
-                <input
-                  type="number"
-                  name="rating"
-                  defaultValue={t.rating || 4.5}
-                  step="0.1"
-                  min="0"
-                  max="5"
+                  placeholder="e.g., PERPLEXITY, MIDJOURNEY"
                   className={inputClass}
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-white mb-2">Review Count</label>
-                <input
-                  type="number"
-                  name="review_count"
-                  defaultValue={t.review_count || 0}
-                  min="0"
-                  className={inputClass}
+              {/* Tool Logo Upload */}
+              <div className="grid md:grid-cols-2 gap-8">
+                <ImageUpload
+                  currentImage={t.logo || ''}
+                  onImageChange={(url) => {
+                    const logoInput = document.querySelector(
+                      'input[name="logo"]',
+                    ) as HTMLInputElement
+                    if (logoInput) logoInput.value = url || ''
+                  }}
+                  folder="logos"
+                  label="Visual Logo (Recommended)"
                 />
+
+                <div>
+                  <label className="block text-xs font-black uppercase tracking-widest text-slate-500 mb-3 ml-1">
+                    Logo Fallback (Emoji)
+                  </label>
+                  <input
+                    type="text"
+                    name="logo"
+                    defaultValue={t.logo || ''}
+                    placeholder="🤖"
+                    className={`${inputClass} text-3xl text-center py-6 bg-white/5`}
+                  />
+                </div>
+              </div>
+
+              {/* Rest of fields in grid */}
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 pt-4">
+                <div className="lg:col-span-2">
+                  <label className="block text-xs font-black uppercase tracking-widest text-slate-500 mb-3 ml-1">Premium Tagline</label>
+                  <input
+                    type="text"
+                    name="tagline"
+                    defaultValue={t.tagline || ''}
+                    placeholder="The authority in AI search and navigation..."
+                    className={inputClass}
+                  />
+                </div>
+
+                <CategorySelect defaultValue={t.category || ''} required />
+
+                <div className="lg:col-span-3">
+                  <label className="block text-xs font-black uppercase tracking-widest text-slate-500 mb-3 ml-1">
+                    Executive Summary <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    name="description"
+                    defaultValue={t.description || ''}
+                    required
+                    rows={4}
+                    placeholder="Main description shown in hero section..."
+                    className={textareaClass}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-black uppercase tracking-widest text-slate-500 mb-3 ml-1">Expert Rating</label>
+                  <input
+                    type="number"
+                    name="rating"
+                    defaultValue={t.rating || 4.5}
+                    step="0.1"
+                    min="0"
+                    max="5"
+                    className={inputClass}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-black uppercase tracking-widest text-slate-500 mb-3 ml-1">User Base Count</label>
+                  <input
+                    type="number"
+                    name="review_count"
+                    defaultValue={t.review_count || 0}
+                    min="0"
+                    className={inputClass}
+                  />
+                </div>
               </div>
             </div>
           </div>
         </div>
 
         {/* 2. LINKS */}
-        <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-8">
-          <h2 className="text-2xl font-bold text-white mb-2 flex items-center gap-3">
-            <span className="text-3xl">🔗</span>
-            Links & URLs
-          </h2>
-          <p className="text-slate-300 mb-6 text-sm">
-            Website URL is the official site. Affiliate redirects are now managed in Affiliate
-            Links (/admin/affiliate-links).
-          </p>
+        <div className={sectionCardClass}>
+          <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full -mr-32 -mt-32 blur-3xl"></div>
+          <div className="relative">
+            <h2 className={sectionHeaderClass}>
+              <span className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-lg not-italic">🔗</span>
+              Connection Hub
+            </h2>
+            <p className={sectionDescClass}>External destinations and affiliate routing</p>
 
-          <div className="grid md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-semibold text-white mb-2">Website URL</label>
-              <input
-                type="url"
-                name="website_url"
-                defaultValue={t.website_url || ''}
-                placeholder="https://example.com"
-                className={inputClass}
-              />
-            </div>
+            <div className="grid md:grid-cols-2 gap-8">
+              <div>
+                <label className="block text-xs font-black uppercase tracking-widest text-slate-500 mb-3 ml-1">Official Website</label>
+                <input
+                  type="url"
+                  name="website_url"
+                  defaultValue={t.website_url || ''}
+                  placeholder="https://official-domain.com"
+                  className={inputClass}
+                />
+              </div>
 
-            <div>
-              <label className="block text-sm font-semibold text-white mb-2">
-                Affiliate URL (legacy, not used by CTAs)
-              </label>
-              <input
-                type="url"
-                name="affiliate_url"
-                defaultValue={t.affiliate_url || ''}
-                placeholder="https://affiliate-link.com"
-                className={inputClass}
-              />
+              <div>
+                <label className="block text-xs font-black uppercase tracking-widest text-slate-500 mb-3 ml-1">
+                  Legacy Affiliate Link
+                </label>
+                <input
+                  type="url"
+                  name="affiliate_url"
+                  defaultValue={t.affiliate_url || ''}
+                  placeholder="https://redirect.link"
+                  className={inputClass}
+                />
+              </div>
             </div>
           </div>
         </div>
 
         {/* 3. REVIEW CONTENT */}
-        <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-8">
-          <h2 className="text-2xl font-bold text-white mb-2 flex items-center gap-3">
-            <span className="text-3xl">📝</span>
-            In-Depth Review
-          </h2>
-                   <p className="text-slate-300 mb-6 text-sm">Our [Tool] Review section</p>
+        <div className={sectionCardClass}>
+          <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/5 rounded-full -mr-32 -mt-32 blur-3xl"></div>
+          <div className="relative">
+            <h2 className={sectionHeaderClass}>
+              <span className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center text-lg not-italic">📝</span>
+              In-Depth Analysis
+            </h2>
+            <p className={sectionDescClass}>The core narrative of the Authority Report</p>
 
-          <div className="space-y-6">
-            <div>
-              <label className="block text-sm font-semibold text-white mb-2">Review Intro</label>
-              <textarea
-                name="review_intro"
-                defaultValue={t.review_intro || ''}
-                rows={3}
-                placeholder="Opening paragraph..."
-                className={textareaClass}
-              />
-            </div>
+            <div className="space-y-8">
+              <div>
+                <label className="block text-xs font-black uppercase tracking-widest text-slate-500 mb-3 ml-1">Report Intro</label>
+                <textarea
+                  name="review_intro"
+                  defaultValue={t.review_intro || ''}
+                  rows={4}
+                  placeholder="Set the stage for the analysis..."
+                  className={textareaClass}
+                />
+              </div>
 
-            <div>
-              <h3 className="text-lg font-semibold text-white mb-4">Review Sections</h3>
-              <ReviewSectionsRepeater toolId={toolId || null} mode={mode} />
+              <div>
+                <h3 className="text-xs font-black uppercase tracking-[0.2em] text-white mb-6 bg-slate-800/50 py-2 px-4 rounded-lg inline-block italic">Analysis Modules</h3>
+                <ReviewSectionsRepeater toolId={toolId || null} mode={mode} />
+              </div>
             </div>
           </div>
         </div>
 
         {/* 4. PRICING */}
-        <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-8">
-          <h2 className="text-2xl font-bold text-white mb-2 flex items-center gap-3">
-            <span className="text-3xl">💰</span>
-            Pricing Plans
-          </h2>
-          <p className="text-slate-300 mb-6 text-sm">3-column pricing grid</p>
+        <div className={sectionCardClass}>
+          <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/5 rounded-full -mr-32 -mt-32 blur-3xl"></div>
+          <div className="relative">
+            <h2 className={sectionHeaderClass}>
+              <span className="w-8 h-8 rounded-lg bg-cyan-500/10 flex items-center justify-center text-lg not-italic">💰</span>
+              Monetization Model
+            </h2>
+            <p className={sectionDescClass}>Structuring the tiers of investment</p>
 
-          <div className="space-y-6">
-            <div className="grid md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-semibold text-white mb-2">Pricing Model</label>
-                <select
-                  name="pricing_model"
-                  defaultValue={t.pricing_model || ''}
-                  className={inputClass}
-                >
-                  <option value="">Select...</option>
-                  <option value="Free">Free</option>
-                  <option value="Freemium">Freemium</option>
-                  <option value="Paid">Paid</option>
-                  <option value="Subscription">Subscription</option>
-                </select>
+            <div className="space-y-10">
+              <div className="grid md:grid-cols-2 gap-8">
+                <div>
+                  <label className="block text-xs font-black uppercase tracking-widest text-slate-500 mb-3 ml-1">Access Strategy</label>
+                  <select
+                    name="pricing_model"
+                    defaultValue={t.pricing_model || ''}
+                    className={inputClass}
+                  >
+                    <option value="">Select Structure...</option>
+                    <option value="Free">Complimentary Access</option>
+                    <option value="Freemium">Freemium Model</option>
+                    <option value="Paid">Premium Exclusive</option>
+                    <option value="Subscription">Recurrency-Based</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-black uppercase tracking-widest text-slate-500 mb-3 ml-1">Entry Investment</label>
+                  <input
+                    type="text"
+                    name="starting_price"
+                    defaultValue={t.starting_price || ''}
+                    placeholder="e.g. $20/MO or UPON REQUEST"
+                    className={inputClass}
+                  />
+                </div>
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-white mb-2">
-                  Starting Price
-                </label>
-                <input
-                  type="text"
-                  name="starting_price"
-                  defaultValue={t.starting_price || ''}
-                  placeholder="$20/month"
-                  className={inputClass}
-                />
+                <h3 className="text-xs font-black uppercase tracking-[0.2em] text-white mb-6 bg-slate-800/50 py-2 px-4 rounded-lg inline-block italic">Tiered Structures</h3>
+                <PricingRepeater toolId={toolId || null} mode={mode} />
               </div>
-            </div>
-
-            <div>
-              <h3 className="text-lg font-semibold text-white mb-4">Pricing Plans</h3>
-              <PricingRepeater toolId={toolId || null} mode={mode} />
             </div>
           </div>
         </div>
 
         {/* 5. PROS & CONS */}
-        <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-8">
-          <h2 className="text-2xl font-bold text-white mb-2 flex items-center gap-3">
-            <span className="text-3xl">✅</span>
-            Pros & Cons
-          </h2>
-          <p className="text-slate-300 mb-6 text-sm">Green/red side-by-side boxes</p>
+        <div className={sectionCardClass}>
+          <div className="relative">
+            <h2 className={sectionHeaderClass}>
+              <span className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-lg not-italic">⚖️</span>
+              Critical Evaluation
+            </h2>
+            <p className={sectionDescClass}>Balance of strengths and tactical limitations</p>
 
-          <ProsConsRepeater toolId={toolId || null} mode={mode} />
+            <ProsConsRepeater toolId={toolId || null} mode={mode} />
+          </div>
         </div>
 
         {/* 6. FEATURES */}
-        <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-8">
-          <h2 className="text-2xl font-bold text-white mb-2 flex items-center gap-3">
-            <span className="text-3xl">⭐</span>
-            Key Features
-          </h2>
-          <p className="text-slate-300 mb-6 text-sm">3-column feature cards</p>
+        <div className={sectionCardClass}>
+          <div className="relative">
+            <h2 className={sectionHeaderClass}>
+              <span className="w-8 h-8 rounded-lg bg-yellow-500/10 flex items-center justify-center text-lg not-italic">✨</span>
+              Unique Capabilities
+            </h2>
+            <p className={sectionDescClass}>Technical highlights and standard-defining features</p>
 
-          <FeatureRepeater toolId={toolId || null} mode={mode} />
+            <FeatureRepeater toolId={toolId || null} mode={mode} />
+          </div>
         </div>
 
         {/* 7. FAQ */}
-        <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-8">
-          <h2 className="text-2xl font-bold text-white mb-2 flex items-center gap-3">
-            <span className="text-3xl">❓</span>
-            FAQ
-          </h2>
-          <p className="text-slate-300 mb-6 text-sm">Question & answer cards</p>
+        <div className={sectionCardClass}>
+          <div className="relative">
+            <h2 className={sectionHeaderClass}>
+              <span className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-lg not-italic">❓</span>
+              Knowledge Base
+            </h2>
+            <p className={sectionDescClass}>Clarifying common inquiries and edge cases</p>
 
-          <FAQRepeater toolId={toolId || null} mode={mode} />
+            <FAQRepeater toolId={toolId || null} mode={mode} />
+          </div>
         </div>
 
         {/* 8. TAGS */}
-        <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-8">
-          <h2 className="text-2xl font-bold text-white mb-2 flex items-center gap-3">
-            <span className="text-3xl">🏷️</span>
-            Tags
-          </h2>
-          <p className="text-slate-300 mb-6 text-sm">
-            Select tags to categorize this tool for SEO and quiz filtering
-          </p>
+        <div className={sectionCardClass}>
+          <div className="relative">
+            <h2 className={sectionHeaderClass}>
+              <span className="w-8 h-8 rounded-lg bg-slate-500/10 flex items-center justify-center text-lg not-italic">🏷️</span>
+              Taxonomy Settings
+            </h2>
+            <p className={sectionDescClass}>Categorization for engine optimization and filtering</p>
 
-          <TagsSelect defaultValue={t.tags || []} />
+            <TagsSelect defaultValue={t.tags || []} />
+          </div>
         </div>
 
         {/* 9. WORKFLOW STEPS */}
-        <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-8">
-          <h2 className="text-2xl font-bold text-white mb-2 flex items-center gap-3">
-            <span className="text-3xl">📋</span>
-            Getting Started Steps
-          </h2>
-          <p className="text-slate-300 mb-6 text-sm">How-to workflow (optional)</p>
+        <div className={sectionCardClass}>
+          <div className="relative">
+            <h2 className={sectionHeaderClass}>
+              <span className="w-8 h-8 rounded-lg bg-cyan-500/10 flex items-center justify-center text-lg not-italic">📋</span>
+              Operational Journey
+            </h2>
+            <p className={sectionDescClass}>Sequential steps for rapid execution and deployment</p>
 
-          <WorkflowStepsRepeater initialSteps={t.workflow_steps || []} />
+            <WorkflowStepsRepeater initialSteps={t.workflow_steps || []} />
+          </div>
         </div>
 
-        {/* 10. COMPARISON TABLE */}
-        <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-8">
-          <h2 className="text-2xl font-bold text-white mb-2 flex items-center gap-3">
-            <span className="text-3xl">📊</span>
-            Comparison Table (Optional)
-          </h2>
-          <p className="text-slate-300 mb-6 text-sm">Compare vs alternatives</p>
+        {/* 10. INTEGRATIONS */}
+        <div className={sectionCardClass}>
+          <div className="relative">
+            <h2 className={sectionHeaderClass}>
+              <span className="w-8 h-8 rounded-lg bg-pink-500/10 flex items-center justify-center text-lg not-italic">🔌</span>
+              Ecosystem Integrations
+            </h2>
+            <p className={sectionDescClass}>Connected apps and third-party extensions</p>
 
-          <ComparisonTableRepeater toolId={toolId || null} mode={mode} />
+            <IntegrationsRepeater toolId={toolId || null} mode={mode} />
+          </div>
+        </div>
+
+        {/* 11. COMPARISON TABLE */}
+        <div className={sectionCardClass}>
+          <div className="relative">
+            <h2 className={sectionHeaderClass}>
+              <span className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-lg not-italic">📊</span>
+              Market Positioning
+            </h2>
+            <p className={sectionDescClass}>Comparative analysis vs lateral market competitors</p>
+
+            <ComparisonTableRepeater toolId={toolId || null} mode={mode} />
+          </div>
         </div>
 
         {/* 11. ALTERNATIVES */}
-        <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-8">
-          <h2 className="text-2xl font-bold text-white mb-2 flex items-center gap-3">
-            <span className="text-3xl">🔍</span>
-            Alternatives (Optional)
-          </h2>
-          <p className="text-slate-300 mb-6 text-sm">Link to other tool pages</p>
+        <div className={sectionCardClass}>
+          <div className="relative">
+            <h2 className={sectionHeaderClass}>
+              <span className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center text-lg not-italic">🔍</span>
+              Strategic Alternatives
+            </h2>
+            <p className={sectionDescClass}>Diversification options for varied institutional needs</p>
 
-          <AlternativesRepeater toolId={toolId || null} mode={mode} />
+            <AlternativesRepeater toolId={toolId || null} mode={mode} />
+          </div>
         </div>
 
-        {/* 12. PUBLISH DATE PICKER */}
-        <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-8">
-          <h2 className="text-2xl font-bold text-white mb-2 flex items-center gap-3">
-            <span className="text-3xl">📅</span>
-            Publish Schedule
-          </h2>
-          <p className="text-slate-300 mb-6 text-sm">Set when this tool should go live</p>
+        {/* 12. PUBLISH SCHEDULE */}
+        <div className={sectionCardClass}>
+          <div className="relative">
+            <h2 className={sectionHeaderClass}>
+              <span className="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center text-lg not-italic">📅</span>
+              Deployment Schedule
+            </h2>
+            <p className={sectionDescClass}>Set the timeline for public manifestation</p>
 
-          <div>
-            <label className="block text-sm font-semibold text-white mb-2">
-              Publish Date & Time
-            </label>
-            <input
-              type="datetime-local"
-              name="published_date"
-              defaultValue={
-                t.published_date
-                  ? new Date(t.published_date).toISOString().slice(0, 16)
-                  : ''
-              }
-              className={inputClass}
-            />
-            <p className="text-xs text-slate-400 mt-2">
-              💡 Leave empty to publish immediately. Set future date to schedule launch.
-            </p>
+            <div className="max-w-md">
+              <label className="block text-xs font-black uppercase tracking-widest text-slate-500 mb-3 ml-1">
+                Manifestation Timestamp
+              </label>
+              <input
+                type="datetime-local"
+                name="published_date"
+                defaultValue={
+                  t.published_date
+                    ? new Date(t.published_date).toISOString().slice(0, 16)
+                    : ''
+                }
+                className={inputClass}
+              />
+              <p className="text-[10px] font-bold text-slate-500 mt-4 uppercase tracking-[0.1em] italic">
+                💡 Empty = Instant Deployment. Future Date = Scheduled manifestation.
+              </p>
+            </div>
           </div>
         </div>
 
         {/* 13. STATUS */}
-        <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-8">
-          <h2 className="text-2xl font-bold text-white mb-6">Status</h2>
+        <div className={sectionCardClass}>
+          <div className="relative">
+            <h2 className={sectionHeaderClass}>
+              <span className="w-8 h-8 rounded-lg bg-cyan-500/10 flex items-center justify-center text-lg not-italic">🚀</span>
+              Final Authorization
+            </h2>
+            <p className={sectionDescClass}>Activation and visibility toggles</p>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <label className="flex items-center gap-3 p-5 bg-white/5 rounded-xl border-2 border-slate-600 hover:border-cyan-400 transition-all cursor-pointer">
-              <input
-                type="checkbox"
-                name="free_trial"
-                defaultChecked={!!t.free_trial}
-                className="w-5 h-5 text-cyan-500 rounded"
-              />
-              <span className="text-white font-medium">Free Trial</span>
-            </label>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <label className="flex items-center gap-4 p-6 bg-slate-950 border border-slate-700 rounded-2xl hover:border-cyan-500/50 transition-all cursor-pointer group/status">
+                <input
+                  type="checkbox"
+                  name="free_trial"
+                  defaultChecked={!!t.free_trial}
+                  className="w-5 h-5 text-cyan-500 rounded-lg bg-slate-800 border-slate-600 focus:ring-cyan-500/20"
+                />
+                <span className="text-white font-black italic uppercase tracking-widest text-xs group-hover/status:text-cyan-400 transition-colors">Trial Available</span>
+              </label>
 
-            <label className="flex items-center gap-3 p-5 bg-white/5 rounded-xl border-2 border-slate-600 hover:border-green-400 transition-all cursor-pointer">
-              <input
-                type="checkbox"
-                name="published"
-                defaultChecked={t.published ?? true}
-                className="w-5 h-5 text-green-500 rounded"
-              />
-              <span className="text-white font-medium">Published</span>
-            </label>
+              <label className="flex items-center gap-4 p-6 bg-slate-950 border border-slate-700 rounded-2xl hover:border-green-500/50 transition-all cursor-pointer group/status">
+                <input
+                  type="checkbox"
+                  name="published"
+                  defaultChecked={t.published ?? true}
+                  className="w-5 h-5 text-green-500 rounded-lg bg-slate-800 border-slate-600 focus:ring-green-500/20"
+                />
+                <span className="text-white font-black italic uppercase tracking-widest text-xs group-hover/status:text-green-400 transition-colors">Asset Active</span>
+              </label>
 
-            <label className="flex items-center gap-3 p-5 bg-white/5 rounded-xl border-2 border-slate-600 hover:border-yellow-400 transition-all cursor-pointer">
-              <input
-                type="checkbox"
-                name="featured"
-                defaultChecked={!!t.featured}
-                className="w-5 h-5 text-yellow-500 rounded"
-              />
-              <span className="text-white font-medium">Featured</span>
-            </label>
+              <label className="flex items-center gap-4 p-6 bg-slate-950 border border-slate-700 rounded-2xl hover:border-yellow-500/50 transition-all cursor-pointer group/status">
+                <input
+                  type="checkbox"
+                  name="featured"
+                  defaultChecked={!!t.featured}
+                  className="w-5 h-5 text-yellow-500 rounded-lg bg-slate-800 border-slate-600 focus:ring-yellow-500/20"
+                />
+                <span className="text-white font-black italic uppercase tracking-widest text-xs group-hover/status:text-yellow-400 transition-colors">Featured Status</span>
+              </label>
+            </div>
           </div>
         </div>
 
         {/* 14. SEO */}
-        <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-8">
-          <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
-            <span className="text-3xl">🎯</span>
-            SEO & Social
-          </h2>
+        <div className={sectionCardClass}>
+          <div className="relative">
+            <h2 className={sectionHeaderClass}>
+              <span className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-lg not-italic">🎯</span>
+              Engine Calibration
+            </h2>
+            <p className={sectionDescClass}>Meta mapping and discovery optimization</p>
 
-          <div className="space-y-6">
-            <div>
-              <label className="block text-sm font-semibold text-white mb-2">Meta Title</label>
-              <input
-                type="text"
-                name="meta_title"
-                defaultValue={t.meta_title || ''}
-                placeholder="Tool Name Review 2025"
-                className={inputClass}
-              />
-            </div>
+            <div className="space-y-8">
+              <div>
+                <label className="block text-xs font-black uppercase tracking-widest text-slate-500 mb-3 ml-1">Meta Identity Title</label>
+                <input
+                  type="text"
+                  name="meta_title"
+                  defaultValue={t.meta_title || ''}
+                  placeholder="The Ultimate Review 2025"
+                  className={inputClass}
+                />
+              </div>
 
-            <div>
-              <label className="block text-sm font-semibold text-white mb-2">
-                Meta Description
-              </label>
-              <textarea
-                name="meta_description"
-                defaultValue={t.meta_description || ''}
-                rows={2}
-                placeholder="Complete review with features, pricing..."
-                className={textareaClass}
-              />
-            </div>
+              <div>
+                <label className="block text-xs font-black uppercase tracking-widest text-slate-500 mb-3 ml-1">
+                  Engine Manifest Description
+                </label>
+                <textarea
+                  name="meta_description"
+                  defaultValue={t.meta_description || ''}
+                  rows={2}
+                  placeholder="Complete review with features, pricing..."
+                  className={textareaClass}
+                />
+              </div>
 
-            <div>
-              <label className="block text-sm font-semibold text-white mb-2">
-                OG Image URL
-              </label>
-              <input
-                type="url"
-                name="og_image"
-                defaultValue={t.og_image || ''}
-                placeholder="https://example.com/og-image.jpg"
-                className={inputClass}
-              />
+              <div>
+                <label className="block text-xs font-black uppercase tracking-widest text-slate-500 mb-3 ml-1">
+                  Social Manifest Image
+                </label>
+                <input
+                  type="url"
+                  name="og_image"
+                  defaultValue={t.og_image || ''}
+                  placeholder="https://manifest-image.jpg"
+                  className={inputClass}
+                />
+              </div>
             </div>
           </div>
         </div>
 
         {/* SUBMIT */}
-        <div className="flex gap-4 sticky bottom-0 bg-slate-900/95 backdrop-blur-sm border-t-2 border-slate-700 p-6 -mx-4 rounded-t-2xl">
+        <div className="flex gap-4 sticky bottom-6 z-[100] bg-slate-950/80 backdrop-blur-2xl border-2 border-slate-800 p-6 rounded-[2.5rem] shadow-2xl shadow-cyan-500/10">
           <button
             type="submit"
             disabled={saving}
-            className="flex-1 px-8 py-4 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl shadow-lg hover:shadow-cyan-500/25 transition-all text-lg"
+            className="flex-1 px-10 py-5 bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-700 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-white font-black rounded-2xl shadow-2xl hover:shadow-cyan-500/40 transition-all text-sm uppercase tracking-[0.2em] italic"
           >
             {saving ? (
-              <span className="flex items-center justify-center gap-2">
+              <span className="flex items-center justify-center gap-3">
                 <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                    fill="none"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  />
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                 </svg>
-                {isEdit ? 'Saving...' : 'Creating...'}
+                Deploying Asset...
               </span>
             ) : (
-              isEdit ? '💾 Save Changes' : '✨ Create Tool'
+              isEdit ? '💾 Synchronize Changes' : '✨ Manifest New Asset'
             )}
           </button>
 
           <Link
             href="/admin/tools"
-            className="px-8 py-4 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-xl border-2 border-slate-600 hover:border-slate-500 transition-all text-lg flex items-center justify-center"
+            className="px-10 py-5 bg-slate-900 hover:bg-slate-800 text-white font-black rounded-2xl border-2 border-slate-800 hover:border-slate-700 transition-all text-xs uppercase tracking-widest flex items-center justify-center italic"
           >
-            Cancel
+            Abort
           </Link>
         </div>
-      </form>
-    </div>
+      </form >
+    </div >
   )
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */

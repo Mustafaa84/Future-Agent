@@ -65,7 +65,7 @@ REQUIREMENTS:
       const userPrompt = `Write a blog post and return ONLY this JSON (no other text):
 
 {
-  "content": "<h2>Introduction</h2><p>CONTENT HERE with h2, h3, p, ul/li tags</p><h2>Section</h2><p>More content</p>",
+  "content": "<h2>Introduction</h2><p>CONTENT HERE...</p>",
   "excerpt": "150-160 character summary",
   "meta_title": "50-60 character title",
   "meta_description": "150-160 character description",
@@ -73,6 +73,21 @@ REQUIREMENTS:
   "reading_time": 8,
   "featured_image_suggestion": "Image description for stock photos"
 }
+
+${length === 'comparison' ? `
+SPECIAL INSTRUCTION FOR COMPARISON:
+This is a side-by-side battle. Your 'content' field MUST start with a <script type="application/json" id="comparison-data"> block.
+Inside that script, provide a JSON object with this EXACT structure:
+{
+  "toolA": { "name": "Name", "logo": "URL or emoji", "rating": 4.8, "cta": "URL" },
+  "toolB": { "name": "Name", "logo": "URL or emoji", "rating": 4.5, "cta": "URL" },
+  "verdict": { "winner": "toolA", "summary": "Reasoning for winner" },
+  "features": [
+    { "name": "Feature Name", "toolAValue": "Value", "toolBValue": "Value" }
+  ]
+}
+Research the tools in the title to provide ACCURATE ratings and feature values.
+After the </script> block, continue with the normal HTML article (h2, p, etc.) analyzing the comparison.` : ''}
 
 Blog Details:
 Title: "${title}"

@@ -1,35 +1,20 @@
 import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { getTagBySlug } from '@/lib/tags'
+import { supabase } from '@/lib/supabase'
 
 interface Tool {
+  id: string
   name: string
   slug: string
-  tagline: string
-  rating: number
-  reviewCount: number
-  logo: string
-  description: string
-  category: string
+  tagline: string | null
+  rating: number | null
+  logo: string | null
+  description: string | null
+  category: string | null
   tags: string[]
-}
-
-// For now, we'll use the same tools data structure
-// Later this will come from Supabase
-const tools: Record<string, Tool> = {
-  'jasper-ai': {
-    name: 'Jasper AI',
-    slug: 'jasper-ai',
-    tagline: 'AI Copilot for Marketing Teams',
-    rating: 4.8,
-    reviewCount: 187,
-    logo: '✍️',
-    description:
-      'Jasper AI is the leading AI writing platform trusted by over 100,000 businesses worldwide.',
-    category: 'Content Creation',
-    tags: ['paid', 'content-creation', 'seo', 'marketing', 'beginner-friendly'],
-  },
 }
 
 interface TagMetadataParams {
@@ -76,10 +61,19 @@ export default async function TagPage({
     notFound()
   }
 
-  // Filter tools by tag
-  const filteredTools = Object.values(tools).filter(
-    (tool) => tool.tags && tool.tags.includes(slug)
-  )
+  // Fetch tools from Supabase that have this tag
+  const { data: toolsData, error } = await supabase
+    .from('ai_tools')
+    .select('id, name, slug, tagline, rating, logo, description, category, tags')
+    .eq('published', true)
+    .contains('tags', [slug]) // PostgreSQL array contains operator
+    .order('rating', { ascending: false })
+
+  if (error) {
+    console.error('Error fetching tools by tag:', error)
+  }
+
+  const filteredTools: Tool[] = (toolsData as Tool[]) || []
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 to-slate-900">
@@ -144,20 +138,37 @@ export default async function TagPage({
                   className="bg-slate-900/60 border border-slate-800 hover:border-cyan-500/50 rounded-xl p-6 transition group"
                 >
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="w-12 h-12 bg-gradient-to-br from-purple-600 to-purple-800 rounded-lg flex items-center justify-center text-2xl">
-                      {tool.logo}
+                    <div className="w-12 h-12 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
+                      {tool.logo && tool.logo.startsWith('http') ? (
+                        <Image
+                          src={tool.logo}
+                          alt={tool.name}
+                          width={48}
+                          height={48}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-purple-600 to-purple-800 flex items-center justify-center text-white font-bold text-xl">
+                          {tool.name.charAt(0)}
+                        </div>
+                      )}
                     </div>
                     <div className="flex-1">
                       <h3 className="text-lg font-bold text-white group-hover:text-cyan-400 transition">
                         {tool.name}
                       </h3>
-                      <div className="text-xs text-yellow-400">
-                        ★★★★★ {tool.rating}
-                      </div>
+                      {tool.rating && (
+                        <div className="flex items-center gap-1 text-xs text-yellow-400">
+                          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                          </svg>
+                          {tool.rating}
+                        </div>
+                      )}
                     </div>
                   </div>
                   <p className="text-sm text-slate-400 mb-3 line-clamp-2">
-                    {tool.description}
+                    {tool.tagline || tool.description}
                   </p>
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-purple-300">

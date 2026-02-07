@@ -85,6 +85,12 @@ export default function AdminLayout({
                   Tools
                 </Link>
                 <Link
+                  href="/admin/categories"
+                  className="text-slate-300 hover:text-white transition-colors"
+                >
+                  Categories
+                </Link>
+                <Link
                   href="/admin/blog"
                   className="text-slate-300 hover:text-white transition-colors"
                 >

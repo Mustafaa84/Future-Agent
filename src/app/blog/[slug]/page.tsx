@@ -14,6 +14,8 @@ import CategoryNavigation from '@/components/blog/CategoryNavigation'
 import Image from 'next/image'
 import React from 'react'
 import JsonLd from '@/components/SEO/JsonLd'
+import ComparisonPost from '@/components/blog/ComparisonPost'
+import Breadcrumbs from '@/components/SEO/Breadcrumbs'
 
 
 type Params = { slug: string }
@@ -191,42 +193,36 @@ export default async function BlogPostPage({
   const breadcrumbs = [
     { name: 'Home', url: seoConfig.siteUrl },
     { name: 'Blog', url: `${seoConfig.siteUrl}/blog` },
+    { name: post.category || 'Category', url: `${seoConfig.siteUrl}/blog/category/${post.category_slug}` },
     { name: post.title, url: `${seoConfig.siteUrl}/blog/${post.slug}` },
   ]
   const breadcrumbSchema = generateBreadcrumbSchema(breadcrumbs)
+
+  const isComparison = post.category_slug === 'comparisons' ||
+    post.category === 'Comparisons' ||
+    post.category === 'Comparison' ||
+    post.slug.includes('-vs-');
 
 
   return (
     <>
       {/* ✅ JSON-LD Schemas */}
       <JsonLd data={articleSchema} />
-      <JsonLd data={breadcrumbSchema} />
-
 
       <div className="min-h-screen bg-gradient-to-b from-slate-950 to-slate-900 pt-1">
         {/* Header - Breadcrumb removed on mobile, kept on desktop for SEO */}
         <section className="px-4 pt-12 pb-10 border-b border-slate-800">
           <div className="mx-auto max-w-6xl">
             {/* Breadcrumb Navigation - Desktop Only */}
-            <div className="hidden md:flex items-center gap-2 text-sm text-slate-400 mb-4">
-              {breadcrumbs.map((crumb, index) => (
-                <div key={crumb.url} className="flex items-center gap-2">
-                  {index > 0 && <span>/</span>}
-                  {index < breadcrumbs.length - 1 ? (
-                    <Link href={crumb.url} className="hover:text-cyan-400 transition-colors">
-                      {crumb.name}
-                    </Link>
-                  ) : (
-                    <span className="text-white">{crumb.name}</span>
-                  )}
-                </div>
-              ))}
-            </div>
+            <Breadcrumbs items={breadcrumbs.slice(1)} /> {/* Slice 1 because Breadcrumbs component adds Home */}
 
 
-            <span className="inline-block px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-300 text-xs font-semibold mb-3">
+            <Link
+              href={`/blog/category/${post.category_slug}`}
+              className="inline-block px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-300 text-xs font-semibold mb-3 hover:bg-cyan-500/20 transition-colors"
+            >
               {post.category}
-            </span>
+            </Link>
 
 
             <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">
@@ -273,15 +269,18 @@ export default async function BlogPostPage({
                 LinkedIn
               </a>
             </div>
-          </div>
-        </section>
+          </div >
+        </section >
 
 
         {/* Body + Sidebar */}
-        <section className="px-4 py-10">
-          <div className="mx-auto max-w-6xl grid gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,1.1fr)]">
+        < section className={isComparison ? "px-4 py-12" : "px-4 py-10"} >
+          <div className={isComparison
+            ? "mx-auto max-w-5xl"
+            : "mx-auto max-w-6xl grid gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,1.1fr)]"
+          }>
             {/* Main content + Author box */}
-            <div className="space-y-8 min-w-0">
+            <div className={`space-y-8 ${isComparison ? 'w-full' : 'min-w-0'}`}>
               {/* Featured Image */}
               {post.featured_image && (
                 <div className="w-full mb-8 overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/20 shadow-2xl transition-all duration-500 hover:shadow-cyan-500/10 max-w-full">
@@ -306,9 +305,87 @@ export default async function BlogPostPage({
 
               {/* Article content - HTML MODE with professional styling */}
               <article className="text-slate-200 break-words overflow-hidden">
+                {isComparison && post.content.includes('id="comparison-data"') ? (
+                  await (async () => {
+                    try {
+                      const jsonMatch = post.content.match(/<script type="application\/json" id="comparison-data">([\s\S]*?)<\/script>/);
+                      if (jsonMatch && jsonMatch[1]) {
+                        const data = JSON.parse(jsonMatch[1]);
+
+                        // ✅ LIVE RE-HYDRATION: Fetch latest logo/rating for these tools
+                        const toolIdentifiers = [];
+                        if (data.toolA.slug) toolIdentifiers.push({ type: 'slug', val: data.toolA.slug });
+                        else toolIdentifiers.push({ type: 'name', val: data.toolA.name });
+
+                        if (data.toolB.slug) toolIdentifiers.push({ type: 'slug', val: data.toolB.slug });
+                        else toolIdentifiers.push({ type: 'name', val: data.toolB.name });
+
+                        const slugs = toolIdentifiers.filter(i => i.type === 'slug').map(i => i.val);
+                        const names = toolIdentifiers.filter(i => i.type === 'name').map(i => i.val);
+
+                        const hasFilter = slugs.length > 0 || names.length > 0;
+
+                        if (hasFilter) {
+                          const { data: latestTools } = await supabase
+                            .from('ai_tools')
+                            .select('id, name, slug, logo, rating, website_url')
+                            .or(`slug.in.(${slugs.join(',')}),name.in.(${names.map(n => `"${n}"`).join(',')})`);
+
+                          if (latestTools && latestTools.length > 0) {
+                            const findTool = (slug: string | undefined, name: string) => latestTools.find(t => (slug && t.slug === slug) || t.name === name);
+
+                            const hydrateTool = async (toolObj: any) => {
+                              const liveTool = findTool(toolObj.slug, toolObj.name);
+                              if (liveTool) {
+                                toolObj.logo = liveTool.logo || toolObj.logo;
+                                toolObj.rating = liveTool.rating || toolObj.rating;
+
+                                // Fetch relations
+                                const [pros, cons, pricing, integrations, affiliateLink] = await Promise.all([
+                                  supabase.from('tool_pros').select('text').eq('tool_id', liveTool.id).order('sort_order', { ascending: true }),
+                                  supabase.from('tool_cons').select('text').eq('tool_id', liveTool.id).order('sort_order', { ascending: true }),
+                                  supabase.from('tool_pricing_plans').select('price_label, price, period').eq('tool_id', liveTool.id).order('is_popular', { ascending: false }).limit(1).maybeSingle(),
+                                  supabase.from('tool_integrations').select('integration_name').eq('tool_id', liveTool.id).order('sort_order', { ascending: true }),
+                                  supabase.from('affiliate_links').select('slug').eq('tool_id', liveTool.id).maybeSingle()
+                                ]);
+
+                                // CTA Logic: Affiliate Link > Website URL > Original Content
+                                toolObj.cta = affiliateLink.data?.slug
+                                  ? `/go/${affiliateLink.data.slug}`
+                                  : (liveTool.website_url || toolObj.cta);
+
+                                if (pros.data?.length) toolObj.pros = pros.data.map(p => p.text);
+                                if (cons.data?.length) toolObj.cons = cons.data.map(c => c.text);
+                                if (pricing.data) {
+                                  toolObj.pricing = pricing.data.price_label || (pricing.data.price ? `$${pricing.data.price}/${pricing.data.period}` : toolObj.pricing);
+                                }
+                                if (integrations.data?.length) toolObj.integrations = integrations.data.map(i => i.integration_name);
+                              }
+                            };
+
+                            await Promise.all([
+                              hydrateTool(data.toolA),
+                              hydrateTool(data.toolB)
+                            ]);
+                          }
+                        }
+
+                        return <ComparisonPost {...data} />;
+                      }
+                    } catch (e) {
+                      console.error("Failed to parse comparison data", e);
+                    }
+                    return null;
+                  })()
+                ) : null}
+
                 {post.content ? (
                   <div
-                    dangerouslySetInnerHTML={{ __html: post.content }}
+                    dangerouslySetInnerHTML={{
+                      __html: isComparison
+                        ? post.content.replace(/<script type="application\/json" id="comparison-data">([\s\S]*?)<\/script>/, '')
+                        : post.content
+                    }}
                     className="
                       // Base text styling
                       text-slate-300 leading-relaxed
@@ -377,6 +454,14 @@ export default async function BlogPostPage({
 
                       // Horizontal rule
                       [&>hr]:my-8 [&>hr]:border-slate-800
+
+
+                      // Tables
+                      [&>table]:w-full [&>table]:mb-6 [&>table]:border-collapse [&>table]:bg-slate-900/40 [&>table]:rounded-xl [&>table]:overflow-hidden
+                      [&>table_thead]:bg-slate-800/80
+                      [&>table_th]:p-4 [&>table_th]:text-xs [&>table_th]:text-left [&>table_th]:font-black [&>table_th]:uppercase [&>table_th]:tracking-widest [&>table_th]:text-slate-400 [&>table_th]:border-b [&>table_th]:border-slate-700
+                      [&>table_td]:p-4 [&>table_td]:text-sm [&>table_td]:text-slate-300 [&>table_td]:border-b [&>table_td]:border-slate-800/50 [&>table_tr:last-child_td]:border-none
+                      [&>table_tr:hover]:bg-white/[0.02] [&>table_tr]:transition-colors
                     "
                   />
                 ) : (
@@ -439,16 +524,18 @@ export default async function BlogPostPage({
             </div>
 
             {/* Sidebar */}
-            <aside className="space-y-6 lg:sticky lg:top-24 lg:h-fit">
-              <EmailOptInSidebar />
-              <CategoryNavigation />
-            </aside>
+            {!isComparison && (
+              <aside className="space-y-6 lg:sticky lg:top-24 lg:h-fit">
+                <EmailOptInSidebar />
+                <CategoryNavigation />
+              </aside>
+            )}
           </div>
-        </section>
+        </section >
 
 
         {/* Related posts */}
-        <section className="px-4 py-10 bg-slate-950/50">
+        < section className="px-4 py-10 bg-slate-950/50" >
           <div className="mx-auto max-w-6xl">
             <h2 className="text-2xl font-bold text-white mb-6 text-center">
               Related articles
@@ -515,12 +602,12 @@ export default async function BlogPostPage({
               </div>
             )}
           </div>
-        </section>
+        </section >
 
 
         {/* COMMENT SECTION */}
-        <CommentSection postId={post.id} />
-      </div>
+        < CommentSection postId={post.id} />
+      </div >
     </>
   )
 }

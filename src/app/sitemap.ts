@@ -50,6 +50,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'monthly' as const,
       priority: 0.5,
     },
+    {
+      url: `${siteUrl}/privacy`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly' as const,
+      priority: 0.3,
+    },
+    {
+      url: `${siteUrl}/terms`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly' as const,
+      priority: 0.3,
+    },
+    {
+      url: `${siteUrl}/affiliate-disclaimer`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly' as const,
+      priority: 0.3,
+    },
   ]
 
   // Dynamic tool pages
@@ -68,5 +86,43 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   })) || []
 
-  return [...staticPages, ...toolPages, ...blogPages]
+  const { data: categories } = await supabase
+    .from('categories')
+    .select('slug, created_at')
+
+  // ✅ NEW: Dynamic directory-specific category pages (SEO Depth!)
+  const toolCategoryPages = categories?.map((cat) => ({
+    url: `${siteUrl}/tools/category/${cat.slug}`,
+    lastModified: new Date(cat.created_at || new Date()),
+    changeFrequency: 'weekly' as const,
+    priority: 0.8,
+  })) || []
+
+  const blogCategoryPages = categories?.map((cat) => ({
+    url: `${siteUrl}/blog/category/${cat.slug}`,
+    lastModified: new Date(cat.created_at || new Date()),
+    changeFrequency: 'weekly' as const,
+    priority: 0.8,
+  })) || []
+
+  // ✅ NEW: Dynamic tag pages
+  const { data: tags } = await supabase
+    .from('tags')
+    .select('slug')
+
+  const tagPages = tags?.map((tag) => ({
+    url: `${siteUrl}/tag/${tag.slug}`,
+    lastModified: new Date(),
+    changeFrequency: 'weekly' as const,
+    priority: 0.6,
+  })) || []
+
+  return [
+    ...staticPages,
+    ...toolPages,
+    ...blogPages,
+    ...toolCategoryPages,
+    ...blogCategoryPages,
+    ...tagPages
+  ]
 }

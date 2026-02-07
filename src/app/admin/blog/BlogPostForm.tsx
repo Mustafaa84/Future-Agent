@@ -48,6 +48,9 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import ContentTemplates from '@/components/blog/ContentTemplates'
 import { createBlogPost, updateBlogPost } from './actions'
+import { generateComparisonData } from './comparison-generator-action'
+import ImageUpload from '@/components/ImageUpload'
+import { supabase } from '@/lib/supabase'
 
 interface InitialData {
   id?: string
@@ -82,7 +85,7 @@ interface FormDataState {
   reading_time: string
   keywords: string
   tone: 'neutral' | 'friendly' | 'expert'
-  length: 'short' | 'standard' | 'long'
+  length: 'short' | 'standard' | 'long' | 'comparison'
 }
 
 interface PerplexityResponse {
@@ -97,15 +100,11 @@ interface PerplexityResponse {
   featured_image_suggestion?: string
 }
 
-const PRESET_CATEGORIES = [
-  'AI Tools',
-  'Content Creation',
-  'Automation',
-  'Marketing',
-  'Productivity',
-  'Design',
-  'Coding',
-]
+// ✅ Dynamic category type
+interface DbCategory {
+  name: string
+  slug: string
+}
 
 export default function BlogPostForm({
   initialData,
@@ -138,12 +137,21 @@ export default function BlogPostForm({
   const [isEdit, setIsEdit] = useState(false)
   const [aiGenerating, setAiGenerating] = useState(false)
   const [featuredImageSuggestion, setFeaturedImageSuggestion] = useState('')
+  const [dbCategories, setDbCategories] = useState<DbCategory[]>([])
+  const [fetchingCategories, setFetchingCategories] = useState(true)
 
   // ✅ NEW: track custom category mode + value
   const [categoryMode, setCategoryMode] = useState<'preset' | 'custom'>(
     'preset'
   )
   const [customCategory, setCustomCategory] = useState('')
+
+  // ✅ NEW: Comparison Generator States
+  const [showComparisonGenerator, setShowComparisonGenerator] = useState(false)
+  const [selectedToolA, setSelectedToolA] = useState('')
+  const [selectedToolB, setSelectedToolB] = useState('')
+  const [availableTools, setAvailableTools] = useState<Array<{ id: string; name: string; slug: string; logo: string }>>([])
+  const [generatingComparison, setGeneratingComparison] = useState(false)
 
   const router = useRouter()
 
@@ -209,14 +217,41 @@ export default function BlogPostForm({
       setIsEdit(true)
 
       // If existing category is not in presets, switch to custom mode
-      if (
-        initialData.category &&
-        !PRESET_CATEGORIES.includes(initialData.category)
-      ) {
-        setCategoryMode('custom')
-        setCustomCategory(initialData.category)
+      if (initialData.category) {
+        // We will check against dbCategories in a separate effect once they load
       }
     }
+  }, [initialData])
+
+  // ✅ NEW: Fetch categories from DB
+  useEffect(() => {
+    async function loadCategories() {
+      setFetchingCategories(true)
+      try {
+        const { data, error } = await supabase
+          .from('categories')
+          .select('name, slug')
+          .order('name', { ascending: true })
+
+        if (!error && data) {
+          setDbCategories(data)
+
+          // Legacy check: if initialData exists and category is not in the list, set custom
+          if (initialData?.category) {
+            const exists = data.some(c => c.name === initialData.category)
+            if (!exists) {
+              setCategoryMode('custom')
+              setCustomCategory(initialData.category)
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching categories:', err)
+      } finally {
+        setFetchingCategories(false)
+      }
+    }
+    loadCategories()
   }, [initialData])
 
   const handleInputChange = (
@@ -262,6 +297,15 @@ export default function BlogPostForm({
           ? customCategory.trim()
           : formData.category
 
+      // ✅ NEW: Resolve final category slug from DB if preset
+      let finalCategorySlug = ''
+      if (categoryMode === 'preset') {
+        const matchingCat = dbCategories.find(c => c.name === formData.category)
+        if (matchingCat) {
+          finalCategorySlug = matchingCat.slug
+        }
+      }
+
       // Auto-extract featured image from content if not provided
       let featuredImage = formData.featured_image
       if (!featuredImage && formData.content) {
@@ -287,6 +331,9 @@ export default function BlogPostForm({
       data.append('excerpt', formData.excerpt)
       data.append('author', formData.author || 'Admin')
       data.append('category', finalCategory)
+      if (finalCategorySlug) {
+        data.append('category_slug', finalCategorySlug)
+      }
       data.append('tags', formData.tags)
       data.append('featured_image', featuredImage || '')
       data.append('status', formData.status)
@@ -344,7 +391,12 @@ export default function BlogPostForm({
       formDataToSend.append('category', aiCategory)
       formDataToSend.append('keywords', formData.keywords)
       formDataToSend.append('tone', formData.tone)
-      formDataToSend.append('length', formData.length)
+
+      // ✅ AUTO-DETECT COMPARISON MODE
+      const finalLength = (aiCategory.toLowerCase().includes('comparison') || formData.length === 'comparison')
+        ? 'comparison'
+        : formData.length
+      formDataToSend.append('length', finalLength)
 
       const response = await fetch('/api/perplexity', {
         method: 'POST',
@@ -385,6 +437,78 @@ export default function BlogPostForm({
       console.error('Perplexity API error:', err)
     } finally {
       setAiGenerating(false)
+    }
+  }
+
+  // ✅ NEW: Load available tools on mount
+  useEffect(() => {
+    async function loadTools() {
+      const { data, error } = await supabase
+        .from('ai_tools')
+        .select('id, name, slug, logo')
+        .eq('published', true)
+        .order('name', { ascending: true })
+
+      if (!error && data) {
+        setAvailableTools(data)
+      }
+    }
+    loadTools()
+  }, [])
+
+  // ✅ NEW: Handle comparison generation
+  const handleGenerateComparison = async () => {
+    if (!selectedToolA || !selectedToolB) {
+      setError('Please select both Tool A and Tool B')
+      return
+    }
+
+    if (selectedToolA === selectedToolB) {
+      setError('Please select two different tools')
+      return
+    }
+
+    setGeneratingComparison(true)
+    setError(null)
+
+    try {
+      const result = await generateComparisonData(selectedToolA, selectedToolB)
+
+      if (result.success && result.data) {
+        // Build the <script> tag with JSON (Widget Data)
+        const scriptTag = `<script type="application/json" id="comparison-data">
+${JSON.stringify(result.data, null, 2)}
+</script>`
+
+        // Insert into content editor
+        setFormData((prev) => ({
+          ...prev,
+          content: scriptTag,
+          category: 'Comparisons',
+          length: 'comparison'
+        }))
+
+        // Auto-suggest title if empty
+        const suggestedTitle = `${result.data.toolA.name} vs ${result.data.toolB.name}: Which AI Tool is Better in 2026?`
+        if (!formData.title || formData.title.trim() === '') {
+          setFormData((prev) => ({
+            ...prev,
+            title: suggestedTitle,
+            slug: generateSlug(suggestedTitle),
+          }))
+        }
+
+        setSuccessMessage('✅ Comparison data generated successfully!')
+        setTimeout(() => setSuccessMessage(''), 3000)
+        setShowComparisonGenerator(false)
+      } else {
+        setError(result.error || 'Failed to generate comparison data')
+      }
+    } catch (err) {
+      setError('An error occurred while generating comparison')
+      console.error(err)
+    } finally {
+      setGeneratingComparison(false)
     }
   }
 
@@ -478,18 +602,23 @@ export default function BlogPostForm({
           <div className="space-y-2">
             <select
               name="category-select"
-              value={
-                categoryMode === 'preset' ? formData.category : '__custom__'
-              }
+              value={categoryMode === 'preset' ? formData.category : '__custom__'}
               onChange={handleCategorySelectChange}
-              className="w-full p-4 bg-slate-800 border border-slate-700 rounded-lg text-slate-200 focus:ring-2 focus:ring-cyan-400 focus:border-transparent"
+              className="w-full p-4 bg-slate-800 border border-slate-700 rounded-lg text-slate-200 focus:ring-2 focus:ring-cyan-400 focus:border-transparent disabled:opacity-50"
               required
+              disabled={fetchingCategories}
             >
-              {PRESET_CATEGORIES.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
-                </option>
-              ))}
+              {fetchingCategories ? (
+                <option>Loading categories...</option>
+              ) : (
+                <>
+                  {dbCategories.map((cat) => (
+                    <option key={cat.slug} value={cat.name}>
+                      {cat.name}
+                    </option>
+                  ))}
+                </>
+              )}
               <option value="__custom__">➕ Custom category…</option>
             </select>
 
@@ -551,32 +680,38 @@ export default function BlogPostForm({
         </div>
 
         {/* FEATURED IMAGE FIELD */}
-        <div>
-          <label className="block text-sm font-medium text-slate-300 mb-2">
-            Featured Image URL
+        <div className="bg-slate-800/30 p-6 rounded-xl border border-slate-700/50">
+          <label className="block text-sm font-bold text-slate-200 uppercase tracking-widest mb-4">
+            Featured Visual Asset
           </label>
-          <input
-            type="url"
-            name="featured_image"
-            value={formData.featured_image}
-            onChange={handleInputChange}
-            className="w-full p-4 bg-slate-800 border border-slate-700 rounded-lg text-slate-200 focus:ring-2 focus:ring-cyan-400 focus:border-transparent"
-            placeholder="https://images.unsplash.com/photo-..."
-          />
-          {formData.featured_image && (
-            <div className="mt-3">
-              <Image
-                src={formData.featured_image}
-                alt="Preview"
-                width={800}
-                height={400}
-                className="w-full h-48 object-cover rounded-lg border border-slate-700"
-              />
+
+          <div className="grid md:grid-cols-2 gap-8 items-start">
+            <ImageUpload
+              currentImage={formData.featured_image}
+              onImageChange={(url) => setFormData(prev => ({ ...prev, featured_image: url || '' }))}
+              folder="blog"
+              label="Upload Cover Image"
+            />
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">
+                  OR: External Asset URL
+                </label>
+                <input
+                  type="url"
+                  name="featured_image"
+                  value={formData.featured_image}
+                  onChange={handleInputChange}
+                  className="w-full p-4 bg-slate-800 border-2 border-slate-700 rounded-xl text-slate-200 focus:ring-2 focus:ring-cyan-400 focus:border-transparent transition-all"
+                  placeholder="https://images.unsplash.com/photo-..."
+                />
+              </div>
+              <p className="text-xs text-slate-500 italic">
+                Note: Uploaded images are optimized and served via our global CDN for maximum speed.
+              </p>
             </div>
-          )}
-          <p className="text-xs text-slate-500 mt-2">
-            Leave empty to auto-extract from content
-          </p>
+          </div>
         </div>
 
         {/* ✅ NEW: CONTENT TEMPLATES */}
@@ -648,6 +783,9 @@ export default function BlogPostForm({
                 <option value="short">Short (500-800 words)</option>
                 <option value="standard">Standard (1200-1500 words)</option>
                 <option value="long">Long (2000+ words)</option>
+                <option value="comparison">
+                  Comparison (Specialized Battle UI)
+                </option>
               </select>
             </div>
           </div>
@@ -685,6 +823,78 @@ export default function BlogPostForm({
             </button>
           </div>
         )}
+
+        {/* ✅ NEW: COMPARISON GENERATOR SECTION */}
+        <div className="border-t border-slate-700 pt-6 mt-6">
+          <button
+            type="button"
+            onClick={() => setShowComparisonGenerator(!showComparisonGenerator)}
+            className="w-full bg-gradient-to-r from-cyan-600 to-purple-600 text-white py-3 px-6 rounded-lg font-medium hover:from-cyan-700 hover:to-purple-700 transition-all flex items-center justify-between"
+          >
+            <span>🆚 Auto-Generate Comparison</span>
+            <span>{showComparisonGenerator ? '▼' : '▶'}</span>
+          </button>
+
+          {showComparisonGenerator && (
+            <div className="mt-4 p-6 bg-slate-800 border border-slate-700 rounded-lg space-y-4">
+              <p className="text-sm text-slate-300 mb-4">
+                Select two tools to automatically generate a comparison blog post. The system will pull data from existing tool review pages.
+              </p>
+
+              {/* Tool A Selection */}
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Tool A
+                </label>
+                <select
+                  value={selectedToolA}
+                  onChange={(e) => setSelectedToolA(e.target.value)}
+                  className="w-full p-3 bg-slate-700 border border-slate-600 rounded-lg text-slate-200 focus:ring-2 focus:ring-cyan-400 focus:border-transparent"
+                >
+                  <option value="">Select first tool...</option>
+                  {availableTools.map((tool) => (
+                    <option key={tool.id} value={tool.slug}>
+                      {tool.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Tool B Selection */}
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Tool B
+                </label>
+                <select
+                  value={selectedToolB}
+                  onChange={(e) => setSelectedToolB(e.target.value)}
+                  className="w-full p-3 bg-slate-700 border border-slate-600 rounded-lg text-slate-200 focus:ring-2 focus:ring-purple-400 focus:border-transparent"
+                >
+                  <option value="">Select second tool...</option>
+                  {availableTools.map((tool) => (
+                    <option key={tool.id} value={tool.slug}>
+                      {tool.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Generate Button */}
+              <button
+                type="button"
+                onClick={handleGenerateComparison}
+                disabled={generatingComparison || !selectedToolA || !selectedToolB}
+                className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white py-3 px-6 rounded-lg font-medium hover:from-green-700 hover:to-emerald-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {generatingComparison ? '🔄 Generating comparison...' : '🚀 Generate Comparison Data'}
+              </button>
+
+              <p className="text-xs text-slate-500 mt-3">
+                💡 After generation, you can still edit the title, meta description, tags, and content as needed.
+              </p>
+            </div>
+          )}
+        </div>
 
         {/* HTML CONTENT FIELD */}
         <div>

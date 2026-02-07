@@ -45,14 +45,8 @@ export async function POST(request: NextRequest) {
             <p style="color: #475569; line-height: 1.6; white-space: pre-wrap;">${message}</p>
           </div>
 
-          <div style="margin-top: 20px; padding: 15px; background: #ecfeff; border-left: 4px solid #0891b2; border-radius: 4px;">
-            <p style="margin: 0; color: #0e7490; font-size: 14px;">
-              💡 <strong>Quick Reply:</strong> Just hit reply to respond directly to ${email}
-            </p>
-          </div>
-
           <p style="color: #94a3b8; font-size: 12px; margin-top: 30px;">
-            Sent from Future Agent contact form at ${new Date().toLocaleString('en-US', { timeZone: 'Africa/Cairo' })} EET
+            Sent from Future Agent contact form at ${new Date().toLocaleString()}
           </p>
         </div>
       `,

@@ -1,6 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
+import BlogCard from '@/components/blog/BlogCard'
 
 interface BlogPost {
   id: string
@@ -34,11 +35,12 @@ export default async function BlogPage({
     .from('blog_posts')
     .select('*')
     .eq('published', true)
-    .lte('published_date', new Date().toISOString()) // Only show posts with date <= now
-    .order('published_date', { ascending: false }) // Sort by publish date
+    // Removed date filter temporarily to debug missing posts
+    // .lte('published_date', new Date().toISOString()) 
+    .order('published_date', { ascending: false })
+    .limit(100) // Ensure a high enough limit to see all posts
 
   if (selectedCategory) {
-    // Filter by category_slug using slug from query string
     query = query.eq('category_slug', selectedCategory)
   }
 
@@ -53,37 +55,39 @@ export default async function BlogPage({
         Math.max(3, Math.round((post.content?.length || 0) / 1200) || 5),
     })) || []
 
-  // Get all unique categories for filter buttons (slug + name)
-  const { data: allPosts } = await supabase
-    .from('blog_posts')
-    .select('category, category_slug')
-    .eq('published', true)
+  // Fetch official categories for the filter buttons
+  const { data: categoriesData } = await supabase
+    .from('categories')
+    .select('name, slug, icon')
+    .order('name', { ascending: true })
 
-  const categories: Category[] =
-    Array.from(
-      new Map(
-        ((allPosts as Array<{ category: string | null; category_slug: string | null }>) || [])
-          .filter((p) => p.category && p.category_slug)
-          .map((p) => [
-            p.category_slug as string,
-            {
-              slug: p.category_slug as string,
-              name: p.category as string,
-            },
-          ])
-      ).values()
-    ) || []
+  const categories: Category[] = categoriesData || []
+
+  // Icon mapper for emojis
+  const getIcon = (iconName: string | null) => {
+    const icons: Record<string, string> = {
+      'Megaphone': '📣',
+      'Code2': '💻',
+      'PenTool': '✍️',
+      'Zap': '⚡',
+      'Search': '🔍',
+      'Video': '🎥',
+      'Image': '🖼️',
+      'MessageSquare': '💬'
+    }
+    return iconName ? (icons[iconName] || '📁') : '📁'
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
       <div className="max-w-7xl mx-auto px-4 py-16">
         {/* HEADER */}
         <div className="text-center mb-12">
-          <h1 className="text-5xl font-bold text-slate-100 mb-4">
-            AI Tools Blog
+          <h1 className="text-5xl font-extrabold text-slate-100 mb-4">
+            Agentic AI Blog
           </h1>
           <p className="text-xl text-slate-400">
-            Latest insights, guides, and reviews
+            Insights, guides, and reviews for the autonomous era
           </p>
         </div>
 
@@ -95,27 +99,34 @@ export default async function BlogPage({
           <div className="flex flex-wrap gap-2">
             <Link
               href="/blog"
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                !selectedCategory
-                  ? 'bg-cyan-500 text-white'
-                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-              }`}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${!selectedCategory
+                ? 'bg-cyan-500 text-white'
+                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                }`}
             >
               All Posts
             </Link>
             {categories.map((category) => (
               <Link
                 key={category.slug}
-                href={`/blog?category=${encodeURIComponent(category.slug)}`}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  selectedCategory === category.slug
-                    ? 'bg-cyan-500 text-white'
-                    : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                }`}
+                href={`/blog/category/${category.slug}`}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${selectedCategory === category.slug
+                  ? 'bg-cyan-500 text-white'
+                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                  }`}
               >
+                <span>{getIcon((category as any).icon)}</span>
                 {category.name}
               </Link>
             ))}
+            {selectedCategory && (
+              <Link
+                href="/blog"
+                className="px-4 py-2 rounded-lg text-sm font-medium transition-all bg-slate-800/50 text-slate-500 hover:text-white"
+              >
+                Clear Filters
+              </Link>
+            )}
           </div>
         </div>
 
@@ -154,66 +165,7 @@ export default async function BlogPage({
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {postsWithReadingTime.map((post) => (
-              <Link
-                key={post.id}
-                href={`/blog/${post.slug}`}
-                className="group bg-slate-900 border border-slate-800 rounded-xl overflow-hidden hover:border-cyan-500 transition-all"
-              >
-                {post.featured_image && (
-                  <div className="aspect-video overflow-hidden">
-                    <Image
-                      src={post.featured_image}
-                      alt={post.title}
-                      width={500}
-                      height={280}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-                )}
-                <div className="p-6">
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="px-2 py-1 bg-cyan-900/30 border border-cyan-700 text-cyan-400 text-xs rounded">
-                      {post.category}
-                    </span>
-                    <span className="text-xs text-slate-500">
-                      {post.published_date
-                        ? new Date(post.published_date).toLocaleDateString(
-                            'en-US',
-                            {
-                              month: 'short',
-                              day: 'numeric',
-                              year: 'numeric',
-                            }
-                          )
-                        : ''}
-                      {post.reading_time && (
-                        <>
-                          {' '}
-                          • {post.reading_time} min read
-                        </>
-                      )}
-                    </span>
-                  </div>
-                  <h3 className="text-xl font-bold text-slate-100 group-hover:text-cyan-400 transition-colors mb-2">
-                    {post.title}
-                  </h3>
-                  <p className="text-slate-400 text-sm line-clamp-2 mb-4">
-                    {post.excerpt}
-                  </p>
-                  {post.tags && post.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5">
-                      {post.tags.slice(0, 3).map((tag) => (
-                        <span
-                          key={tag}
-                          className="px-2 py-0.5 bg-slate-800 text-slate-400 text-xs rounded"
-                        >
-                          #{tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </Link>
+              <BlogCard key={post.id} post={post} />
             ))}
           </div>
         )}

@@ -71,8 +71,10 @@ function generateSlug(title: string): string {
 // Helper: Generate excerpt from content
 function generateExcerpt(content: string, maxLength: number = 160): string {
   const plainText = content
-    .replace(/<[^>]*>/g, '')
-    .replace(/\n/g, ' ')
+    .replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gm, '') // Remove script tags & content
+    .replace(/<style\b[^>]*>([\s\S]*?)<\/style>/gm, '')   // Remove style tags & content
+    .replace(/<[^>]*>/g, '')                               // Remove remaining tags
+    .replace(/\s+/g, ' ')                                  // Collapse whitespace
     .trim()
 
   if (plainText.length <= maxLength) return plainText
@@ -94,6 +96,7 @@ export async function createBlogPost(
 
     const author = formData.get('author') as string
     const category = formData.get('category') as string
+    const category_slug = formData.get('category_slug') as string
     const tagsString = formData.get('tags') as string
     const tags = tagsString
       ? tagsString.split(',').map((t) => t.trim())
@@ -163,7 +166,7 @@ export async function createBlogPost(
         content, // ✅ sanitized HTML
         featured_image: featured_image || null,
         category,
-        category_slug: category.toLowerCase().replace(/[^a-z0-9]/g, '-'),
+        category_slug: category_slug || category.toLowerCase().replace(/[^a-z0-9]/g, '-'),
         category_name: category,
         author: author || 'Admin',
         published,
@@ -223,6 +226,7 @@ export async function updateBlogPost(
 
     const author = formData.get('author') as string
     const category = formData.get('category') as string
+    const category_slug = formData.get('category_slug') as string
     const tagsString = formData.get('tags') as string
     const tags = tagsString
       ? tagsString.split(',').map((t) => t.trim())
@@ -292,7 +296,7 @@ export async function updateBlogPost(
         content, // ✅ sanitized HTML
         featured_image: featured_image || null,
         category,
-        category_slug: category.toLowerCase().replace(/[^a-z0-9]/g, '-'),
+        category_slug: category_slug || category.toLowerCase().replace(/[^a-z0-9]/g, '-'),
         category_name: category,
         author: author || 'Admin',
         published,

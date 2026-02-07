@@ -1,80 +1,74 @@
 import Link from 'next/link'
-import { createAdminClient } from '@/lib/supabase'
+import { createAdminClient, withRetry } from '@/lib/supabase'
 
 export const dynamic = 'force-dynamic'
 
 export default async function AdminDashboard() {
   const supabase = createAdminClient()
 
-  // Get counts
-  const { count: toolsCount } = await supabase
-    .from('ai_tools')
-    .select('*', { count: 'exact', head: true })
-
-  const { count: blogCount } = await supabase
-    .from('blog_posts')
-    .select('*', { count: 'exact', head: true })
-
-  const { count: publishedTools } = await supabase
-    .from('ai_tools')
-    .select('*', { count: 'exact', head: true })
-    .eq('published', true)
-
-  const { count: publishedPosts } = await supabase
-    .from('blog_posts')
-    .select('*', { count: 'exact', head: true })
-    .eq('published', true)
-
-  // Affiliate clicks stats
-  const { count: totalAffiliateClicks } = await supabase
-    .from('affiliate_clicks')
-    .select('*', { count: 'exact', head: true })
-
+  // Calculate date filters
   const sevenDaysAgo = new Date()
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
-
-  const { count: clicksLast7Days } = await supabase
-    .from('affiliate_clicks')
-    .select('*', { count: 'exact', head: true })
-    .gte('created_at', sevenDaysAgo.toISOString())
 
   const startOfMonth = new Date()
   startOfMonth.setDate(1)
   startOfMonth.setHours(0, 0, 0, 0)
 
-  const { count: clicksThisMonth } = await supabase
-    .from('affiliate_clicks')
-    .select('*', { count: 'exact', head: true })
-    .gte('created_at', startOfMonth.toISOString())
+  // Batch 1: Core counts (most important)
+  const [
+    toolsCountRes,
+    blogCountRes,
+    categoriesCountRes,
+    publishedToolsRes,
+    publishedPostsRes,
+  ] = await Promise.all([
+    withRetry(async () => await supabase.from('ai_tools').select('*', { count: 'exact', head: true })),
+    withRetry(async () => await supabase.from('blog_posts').select('*', { count: 'exact', head: true })),
+    withRetry(async () => await supabase.from('categories').select('*', { count: 'exact', head: true })),
+    withRetry(async () => await supabase.from('ai_tools').select('*', { count: 'exact', head: true }).eq('published', true)),
+    withRetry(async () => await supabase.from('blog_posts').select('*', { count: 'exact', head: true }).eq('published', true)),
+  ])
 
-  // Recent Activity: latest posts, tools, and comments
-  const { data: recentPosts } = await supabase
-    .from('blog_posts')
-    .select('id, title, created_at')
-    .order('created_at', { ascending: false })
-    .limit(3)
+  // Batch 2: Affiliate and visitor stats
+  const [
+    totalAffiliateClicksRes,
+    clicksLast7DaysRes,
+    clicksThisMonthRes,
+    totalVisitorsRes,
+    visitorsThisWeekRes,
+  ] = await Promise.all([
+    withRetry(async () => await supabase.from('affiliate_clicks').select('*', { count: 'exact', head: true })),
+    withRetry(async () => await supabase.from('affiliate_clicks').select('*', { count: 'exact', head: true }).gte('created_at', sevenDaysAgo.toISOString())),
+    withRetry(async () => await supabase.from('affiliate_clicks').select('*', { count: 'exact', head: true }).gte('created_at', startOfMonth.toISOString())),
+    withRetry(async () => await supabase.from('page_views').select('*', { count: 'exact', head: true })),
+    withRetry(async () => await supabase.from('page_views').select('*', { count: 'exact', head: true }).gte('created_at', sevenDaysAgo.toISOString())),
+  ])
 
-  const { data: recentTools } = await supabase
-    .from('ai_tools')
-    .select('id, name, created_at')
-    .order('created_at', { ascending: false })
-    .limit(3)
+  // Batch 3: Recent activity (data fetches)
+  const [
+    recentPostsRes,
+    recentToolsRes,
+    recentCommentsRes,
+  ] = await Promise.all([
+    withRetry(async () => await supabase.from('blog_posts').select('id, title, created_at').order('created_at', { ascending: false }).limit(3)),
+    withRetry(async () => await supabase.from('ai_tools').select('id, name, created_at').order('created_at', { ascending: false }).limit(3)),
+    withRetry(async () => await supabase.from('tool_comments').select('id, author_name, created_at, tool_id').order('created_at', { ascending: false }).limit(3)),
+  ])
 
-  const { data: recentComments } = await supabase
-    .from('tool_comments')
-    .select('id, author_name, created_at, tool_id')
-    .order('created_at', { ascending: false })
-    .limit(3)
-
-  // Visitor stats (Real Data)
-  const { count: totalVisitors } = await supabase
-    .from('page_views')
-    .select('*', { count: 'exact', head: true })
-
-  const { count: visitorsThisWeek } = await supabase
-    .from('page_views')
-    .select('*', { count: 'exact', head: true })
-    .gte('created_at', sevenDaysAgo.toISOString())
+  // Extract values with fallbacks
+  const toolsCount = toolsCountRes.count ?? 0
+  const blogCount = blogCountRes.count ?? 0
+  const categoriesCount = categoriesCountRes.count ?? 0
+  const publishedTools = publishedToolsRes.count ?? 0
+  const publishedPosts = publishedPostsRes.count ?? 0
+  const totalAffiliateClicks = totalAffiliateClicksRes.count ?? 0
+  const clicksLast7Days = clicksLast7DaysRes.count ?? 0
+  const clicksThisMonth = clicksThisMonthRes.count ?? 0
+  const recentPosts = recentPostsRes.data
+  const recentTools = recentToolsRes.data
+  const recentComments = recentCommentsRes.data
+  const totalVisitors = totalVisitorsRes.count ?? 0
+  const visitorsThisWeek = visitorsThisWeekRes.count ?? 0
 
   // Combine and sort
   const activityItems = [
@@ -190,6 +184,21 @@ export default async function AdminDashboard() {
             </div>
           </div>
 
+          <div className="group relative bg-gradient-to-br from-slate-900/80 to-slate-800/50 border border-slate-700/50 rounded-2xl p-6 backdrop-blur-xl hover:border-orange-500/60 transition-all hover:shadow-2xl hover:shadow-orange-500/20">
+            <div className="absolute inset-0 bg-gradient-to-r from-orange-500/5 to-amber-500/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="relative">
+              <div className="text-orange-400 text-sm font-semibold mb-2 tracking-wide uppercase">
+                Categories
+              </div>
+              <div className="text-4xl font-black text-white mb-1">
+                {categoriesCount || 0}
+              </div>
+              <div className="text-orange-400 text-sm font-semibold">
+                Core Pillars
+              </div>
+            </div>
+          </div>
+
           <div className="group relative bg-gradient-to-br from-slate-900/80 to-slate-800/50 border border-slate-700/50 rounded-2xl p-6 backdrop-blur-xl hover:border-purple-500/60 transition-all hover:shadow-2xl hover:shadow-purple-500/20">
             <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 to-pink-500/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
             <div className="relative">
@@ -249,7 +258,7 @@ export default async function AdminDashboard() {
                 </span>
                 Quick Actions
               </h2>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                 <Link
                   href="/admin/tools/add"
                   className="group relative flex transform items-center gap-4 overflow-hidden rounded-xl bg-gradient-to-r from-cyan-500/10 via-blue-500/5 to-indigo-500/10 p-6 text-white transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl hover:shadow-cyan-500/25 hover:border-cyan-400/50 border border-cyan-400/20"
@@ -262,7 +271,24 @@ export default async function AdminDashboard() {
                       Add New Tool
                     </div>
                     <div className="text-sm text-slate-400">
-                      Create a complete AI tool review
+                      Create tool review
+                    </div>
+                  </div>
+                </Link>
+
+                <Link
+                  href="/admin/categories"
+                  className="group relative flex transform items-center gap-4 overflow-hidden rounded-xl bg-gradient-to-r from-orange-500/10 via-amber-500/5 to-yellow-500/10 p-6 text-white transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl hover:shadow-orange-500/25 hover:border-orange-400/50 border border-orange-400/20"
+                >
+                  <div className="relative flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-amber-600 text-2xl shadow-lg group-hover:scale-110 transition-all">
+                    📂
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="mb-1 font-bold text-white group-hover:text-orange-300 transition-colors">
+                      Category Manager
+                    </div>
+                    <div className="text-sm text-slate-400">
+                      Manage taxonomy
                     </div>
                   </div>
                 </Link>
@@ -279,7 +305,7 @@ export default async function AdminDashboard() {
                       Write New Post
                     </div>
                     <div className="text-sm text-slate-400">
-                      Publish a new blog article
+                      Publish a blog article
                     </div>
                   </div>
                 </Link>

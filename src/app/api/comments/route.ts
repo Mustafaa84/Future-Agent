@@ -1,5 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase, createAdminClient } from '@/lib/supabase'
+import DOMPurify from 'dompurify'
+import { JSDOM } from 'jsdom'
+
+// Initialize DOMPurify for server-side use
+const window = new JSDOM('').window
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const purify = DOMPurify(window as any)
 
 interface CommentRequestBody {
   post_id?: string
@@ -102,13 +109,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Sanitize all user inputs to prevent XSS attacks
+    const sanitizedName = purify.sanitize(body.author_name.trim(), { ALLOWED_TAGS: [] })
+    const sanitizedEmail = body.author_email ? purify.sanitize(body.author_email.trim(), { ALLOWED_TAGS: [] }) : null
+    const sanitizedContent = purify.sanitize(body.content.trim(), { ALLOWED_TAGS: [] })
+
     const { data, error } = await adminAuthClient
       .from(tableName)
       .insert({
         [idField]: idValue,
-        author_name: body.author_name.trim(),
-        author_email: body.author_email?.trim() || null,
-        comment_text: body.content.trim(),
+        author_name: sanitizedName,
+        author_email: sanitizedEmail,
+        comment_text: sanitizedContent,
         rating: 5, // Default rating
         approved: false,
         created_at: new Date().toISOString(),

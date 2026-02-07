@@ -2,7 +2,7 @@ import { supabase } from './supabase'
 
 export async function uploadImage(
   file: File,
-  folder: 'logos' | 'reviews'
+  folder: 'logos' | 'reviews' | 'blog'
 ): Promise<string | null> {
   try {
     // Validate file type

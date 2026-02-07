@@ -80,10 +80,10 @@ export async function getToolData(slug: string) {
     category: tool.category || 'AI Tool',
     lastUpdated: tool.updated_at
       ? new Date(tool.updated_at).toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-        })
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      })
       : undefined,
     tags: parseField(tool.tags),
     reviewContent: {
@@ -95,51 +95,51 @@ export async function getToolData(slug: string) {
         parseField(tool.review_sections).length > 0
           ? parseField(tool.review_sections)
           : [
-              {
-                title: `What ${tool.name} Is Best At`,
-                content: `${tool.name} is strongest when you need specific solutions for your workflow. The platform provides comprehensive features that help you achieve your goals efficiently.`,
-              },
-              {
-                title: `How ${tool.name} Fits Into Your Stack`,
-                content: `${tool.name} integrates seamlessly with your existing tools and workflows, making it easy to adopt without disrupting your current processes.`,
-              },
-              {
-                title: `Key Strengths of ${tool.name}`,
-                content:
-                  'The platform excels at helping teams move faster and achieve better results through intuitive design and powerful automation features.',
-              },
-              {
-                title: `Where ${tool.name} Has Limits`,
-                content: `Like any tool, ${tool.name} has specific use cases where it performs best. Understanding these limitations helps you make informed decisions about your toolkit.`,
-              },
-            ],
+            {
+              title: `What ${tool.name} Is Best At`,
+              content: `${tool.name} is strongest when you need specific solutions for your workflow. The platform provides comprehensive features that help you achieve your goals efficiently.`,
+            },
+            {
+              title: `How ${tool.name} Fits Into Your Stack`,
+              content: `${tool.name} integrates seamlessly with your existing tools and workflows, making it easy to adopt without disrupting your current processes.`,
+            },
+            {
+              title: `Key Strengths of ${tool.name}`,
+              content:
+                'The platform excels at helping teams move faster and achieve better results through intuitive design and powerful automation features.',
+            },
+            {
+              title: `Where ${tool.name} Has Limits`,
+              content: `Like any tool, ${tool.name} has specific use cases where it performs best. Understanding these limitations helps you make informed decisions about your toolkit.`,
+            },
+          ],
     },
     pricing:
       parseField(tool.pricing_plans).length > 0
         ? parseField(tool.pricing_plans)
         : [
-            {
-              plan: 'Free',
-              price: 0,
-              period: 'month',
-              features: ['Basic features', 'Limited usage'],
-              popular: false,
-            },
-            {
-              plan: 'Pro',
-              price: 20,
-              period: 'month',
-              features: ['All features', 'Unlimited usage', 'Priority support'],
-              popular: true,
-            },
-            {
-              plan: 'Enterprise',
-              price: 'Custom',
-              period: 'month',
-              features: ['Custom limits', 'Dedicated support', 'SLA'],
-              popular: false,
-            },
-          ],
+          {
+            plan: 'Free',
+            price: 0,
+            period: 'month',
+            features: ['Basic features', 'Limited usage'],
+            popular: false,
+          },
+          {
+            plan: 'Pro',
+            price: 20,
+            period: 'month',
+            features: ['All features', 'Unlimited usage', 'Priority support'],
+            popular: true,
+          },
+          {
+            plan: 'Enterprise',
+            price: 'Custom',
+            period: 'month',
+            features: ['Custom limits', 'Dedicated support', 'SLA'],
+            popular: false,
+          },
+        ],
     pros:
       parseField(tool.pros).length > 0
         ? parseField(tool.pros)
@@ -152,32 +152,32 @@ export async function getToolData(slug: string) {
       parseField(tool.features).length > 0
         ? parseField(tool.features)
         : [
-            {
-              title: 'Core Feature',
-              description: 'Essential functionality that powers your workflow',
-            },
-            {
-              title: 'Advanced Tools',
-              description: 'Professional-grade features for expert users',
-            },
-            {
-              title: 'Integrations',
-              description: 'Connect with your favorite tools',
-            },
-          ],
+          {
+            title: 'Core Feature',
+            description: 'Essential functionality that powers your workflow',
+          },
+          {
+            title: 'Advanced Tools',
+            description: 'Professional-grade features for expert users',
+          },
+          {
+            title: 'Integrations',
+            description: 'Connect with your favorite tools',
+          },
+        ],
     faq:
       parseField(tool.faq).length > 0
         ? parseField(tool.faq)
         : [
-            {
-              question: `Who should consider ${tool.name}?`,
-              answer: `${tool.name} is a good fit for teams and individuals looking for reliable solutions to improve their workflow and productivity.`,
-            },
-            {
-              question: `Does ${tool.name} replace other tools?`,
-              answer: `${tool.name} complements your existing toolkit rather than replacing everything. It's designed to integrate smoothly with what you already use.`,
-            },
-          ],
+          {
+            question: `Who should consider ${tool.name}?`,
+            answer: `${tool.name} is a good fit for teams and individuals looking for reliable solutions to improve their workflow and productivity.`,
+          },
+          {
+            question: `Does ${tool.name} replace other tools?`,
+            answer: `${tool.name} complements your existing toolkit rather than replacing everything. It's designed to integrate smoothly with what you already use.`,
+          },
+        ],
     alternatives: parseField(tool.alternatives),
     comparisonTable: parseField(tool.comparison_table),
     workflowSteps: parseField(tool.workflow_steps),
@@ -210,6 +210,16 @@ export async function getPublishedToolsForQuiz() {
     return []
   }
 
+  // Fetch affiliate link status for revenue optimization
+  // NOTE: Works with demo data now, will auto-improve when real affiliate links are added
+  const toolIds = data.map(t => t.id)
+  const { data: affiliateData } = await supabase
+    .from('affiliate_links')
+    .select('tool_id')
+    .in('tool_id', toolIds)
+
+  const affiliateToolIds = new Set(affiliateData?.map(a => a.tool_id) || [])
+
   return data.map((tool) => {
     const typedTool = tool as QuizTool
     const rawTags = typedTool.tags
@@ -229,6 +239,8 @@ export async function getPublishedToolsForQuiz() {
     return {
       ...typedTool,
       tags,
+      has_affiliate_link: affiliateToolIds.has(tool.id), // NEW: Revenue optimization flag
+      // TODO: Add commission_rate once populated in affiliate_links table
     }
   })
 }

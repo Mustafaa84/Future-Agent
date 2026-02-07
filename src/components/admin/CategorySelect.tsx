@@ -12,7 +12,7 @@ export default function CategorySelect({
   defaultValue = '',
   required = false,
 }: CategorySelectProps) {
-  const [categories, setCategories] = useState<{ name: string }[]>([])
+  const [categories, setCategories] = useState<{ name: string; slug: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedValue, setSelectedValue] = useState(defaultValue)
@@ -22,7 +22,7 @@ export default function CategorySelect({
       try {
         const { data, error: dbError } = await supabase
           .from('categories')
-          .select('name')
+          .select('name, slug')
           .order('name', { ascending: true })
 
         if (dbError) {
@@ -84,7 +84,7 @@ export default function CategorySelect({
         </option>
         {categories.map((cat) => (
           <option
-            key={cat.name}
+            key={cat.slug}
             value={cat.name}
             className="bg-slate-900 text-white"
           >

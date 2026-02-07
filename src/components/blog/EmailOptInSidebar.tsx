@@ -3,39 +3,39 @@
 import { FormEvent, useState } from 'react'
 
 export default function EmailOptInSidebar() {
-const [email, setEmail] = useState('')
-const [submitted, setSubmitted] = useState(false)
-const [loading, setLoading] = useState(false)
-const [error, setError] = useState(false)
+  const [email, setEmail] = useState('')
+  const [submitted, setSubmitted] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(false)
 
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-  e.preventDefault()
-  setError(false)
+    e.preventDefault()
+    setError(false)
 
-  if (!email.includes('@')) return
+    if (!email.includes('@')) return
 
-  setLoading(true)
+    setLoading(true)
 
-  try {
-    const res = await fetch('/api/subscribe', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ email, source: 'blog' }),
-})
+    try {
+      const res = await fetch('/api/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, source: 'blog' }),
+      })
 
 
-    if (res.ok) {
-      setSubmitted(true)
-    } else {
+      if (res.ok) {
+        setSubmitted(true)
+      } else {
+        setError(true)
+      }
+    } catch {
       setError(true)
+    } finally {
+      setLoading(false)
     }
-  } catch {
-    setError(true)
-  } finally {
-    setLoading(false)
   }
-}
 
 
   if (submitted) {
@@ -66,18 +66,18 @@ const [error, setError] = useState(false)
           required
         />
         <button
-  type="submit"
-  disabled={loading}
-  className="w-full px-4 py-2.5 rounded-lg text-sm font-semibold bg-cyan-500 hover:bg-cyan-400 text-slate-950 shadow-lg shadow-cyan-500/40 transition disabled:opacity-60"
->
-  {loading ? 'Submitting…' : 'Get weekly insights'}
-</button>
-{error && (
-  <p className="text-[11px] text-red-400">
-    Something went wrong. Please try again.
-  </p>
-)}
-<p className="text-[11px] text-slate-500">No spam. Unsubscribe anytime.</p>
+          type="submit"
+          disabled={loading}
+          className="w-full px-4 py-2.5 rounded-lg text-sm font-semibold bg-cyan-500 hover:bg-cyan-400 text-slate-950 shadow-lg shadow-cyan-500/40 transition disabled:opacity-60"
+        >
+          {loading ? 'Submitting…' : 'Get weekly insights'}
+        </button>
+        {error && (
+          <p className="text-[11px] text-red-400">
+            Something went wrong. Please try again.
+          </p>
+        )}
+        <p className="text-[11px] text-slate-500">No spam. Unsubscribe anytime.</p>
 
       </form>
     </div>

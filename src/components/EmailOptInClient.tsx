@@ -77,14 +77,14 @@ export default function EmailOptInClient() {
 
   return (
     <div className="max-w-3xl mx-auto p-8 bg-slate-900/70 border border-slate-800/50 rounded-2xl backdrop-blur-xl shadow-2xl shadow-slate-900/50">
-      <h2 className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-indigo-400 bg-clip-text text-transparent mb-4 text-center">
-        Unlock AI Tool Secrets
+      <h2 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-cyan-400 to-indigo-400 bg-clip-text text-transparent mb-4 text-center">
+        Master Agentic AI Strategy
       </h2>
       <p className="text-slate-300 text-lg mb-2 text-center font-semibold">
-        Join 10K+ creators getting exclusive deals weekly
+        Get data-backed research on autonomous agents and automated workflow blueprints
       </p>
       <p className="text-slate-400 text-sm mb-8 text-center">
-        The smartest creators subscribe to stay ahead
+        The smartest creators subscribe to stay ahead!
       </p>
 
       <form onSubmit={handleSubmit} className="space-y-4">

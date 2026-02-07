@@ -15,29 +15,29 @@ const CATEGORY_ICONS: Record<string, string> = {
 }
 
 export default async function CategoryNavigation() {
-  // Fetch categories directly from blog_posts so it stays in sync
-  const { data: allPosts } = await supabase
-    .from('blog_posts')
-    .select('category, category_slug')
-    .eq('published', true)
+  // Fetch from official categories table
+  const { data: categories } = await supabase
+    .from('categories')
+    .select('name, slug, icon')
+    .order('name', { ascending: true })
 
-  const categories =
-    Array.from(
-      new Map(
-        (allPosts || [])
-          .filter(p => p.category && p.category_slug)
-          .map(p => [
-            p.category_slug as string,
-            {
-              slug: p.category_slug as string,
-              name: p.category as string,
-            },
-          ])
-      ).values()
-    ) || []
-
-  if (!categories.length) {
+  if (!categories || !categories.length) {
     return null
+  }
+
+  // Icon mapper for emojis
+  const getIcon = (iconName: string | null) => {
+    const icons: Record<string, string> = {
+      'Megaphone': '📣',
+      'Code2': '💻',
+      'PenTool': '✍️',
+      'Zap': '⚡',
+      'Search': '🔍',
+      'Video': '🎥',
+      'Image': '🖼️',
+      'MessageSquare': '💬'
+    }
+    return iconName ? (icons[iconName] || '📁') : '📁'
   }
 
   return (
@@ -46,14 +46,12 @@ export default async function CategoryNavigation() {
 
       <div className="space-y-2">
         {categories.map(category => {
-          const icon =
-            CATEGORY_ICONS[category.slug] ??
-            '📁'
+          const icon = getIcon(category.icon)
 
           return (
             <Link
               key={category.slug}
-              href={`/blog?category=${category.slug}`}
+              href={`/blog/category/${category.slug}`}
               className="group flex items-center gap-3 p-3 rounded-lg bg-slate-800/50 border border-slate-700/50 hover:border-cyan-500/50 hover:bg-slate-800 transition-all"
             >
               <span className="text-lg">{icon}</span>

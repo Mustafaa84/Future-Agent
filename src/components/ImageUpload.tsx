@@ -7,7 +7,7 @@ import { uploadImage, deleteImage, compressImage } from '@/lib/uploadImage';
 interface ImageUploadProps {
   currentImage?: string;
   onImageChange: (imageUrl: string | null) => void;
-  folder: 'logos' | 'reviews';
+  folder: 'logos' | 'reviews' | 'blog';
   label: string;
 }
 
@@ -115,11 +115,10 @@ export default function ImageUpload({
       </label>
 
       <div
-        className={`relative border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
-          dragActive
+        className={`relative border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${dragActive
             ? 'border-blue-500 bg-blue-50'
             : 'border-gray-300 hover:border-gray-400'
-        }`}
+          }`}
         onDragEnter={handleDrag}
         onDragLeave={handleDrag}
         onDragOver={handleDrag}

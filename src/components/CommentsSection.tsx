@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
 
 interface Comment {
   id: string
@@ -55,24 +54,23 @@ export default function CommentsSection({
     }
 
     try {
-      const tableName =
-        contentType === 'tool' ? 'tool_comments' : 'blog_comments'
-      const idField = contentType === 'tool' ? 'tool_id' : 'post_id'
+      // Use the API endpoint instead of direct DB access
+      const response = await fetch('/api/comments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          [contentType === 'tool' ? 'tool_id' : 'post_id']: contentId,
+          author_name: formData.author_name,
+          author_email: formData.author_email,
+          content: formData.comment_text,
+        }),
+      })
 
-      const { error: insertError } = await supabase
-        .from(tableName)
-        .insert([
-          {
-            [idField]: contentId,
-            author_name: formData.author_name,
-            author_email: formData.author_email,
-            rating: formData.rating,
-            comment_text: formData.comment_text,
-            approved: false, // Require admin moderation for security
-          },
-        ])
+      const data = await response.json()
 
-      if (insertError) throw insertError
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to submit comment')
+      }
 
       setFormData({
         author_name: '',

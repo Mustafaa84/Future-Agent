@@ -51,6 +51,85 @@ const templates = [
 </section>`
   },
 
+  // 🔹 SPECIALIZED BLOCKS (COMPARISONS)
+  {
+    id: 'dynamic-comparison',
+    label: '💥 Dynamic Comparison',
+    description: 'High-end side-by-side battle UI (New: Pros, Cons, Pricing)',
+    html: `<script type="application/json" id="comparison-data">
+{
+  "toolA": {
+    "name": "Tool A",
+    "logo": "https://placehold.co/400x400/0f172a/06b6d4?text=A",
+    "rating": 4.8,
+    "cta": "https://example.com/a",
+    "pros": ["Advanced features", "Great support"],
+    "cons": ["High cost", "Learning curve"],
+    "pricing": "$19/mo"
+  },
+  "toolB": {
+    "name": "Tool B",
+    "logo": "https://placehold.co/400x400/0f172a/8b5cf6?text=B",
+    "rating": 4.5,
+    "cta": "https://example.com/b",
+    "pros": ["User friendly", "Affordable"],
+    "cons": ["Basic limits", "No offline"],
+    "pricing": "$9/mo"
+  },
+  "verdict": {
+    "winner": "toolA",
+    "summary": "Tool A wins due to its superior infrastructure and lower entry price point for professional teams."
+  },
+  "features": [
+    { "name": "Speed", "toolAValue": "Ultra Fast", "toolBValue": "Standard" },
+    { "name": "API Access", "toolAValue": "Full Access", "toolBValue": "Restricted" },
+    { "name": "Storage", "toolAValue": "Unlimited", "toolBValue": "100GB" }
+  ]
+}
+</script>`
+  },
+  {
+    id: 'full-comparison-article',
+    label: '🏆 High-Value Comparison (Full Article)',
+    description: 'Complete structure: Intro, Deep Dives, Winner',
+    html: `<section>
+  <p><strong>The Verdict Up Front:</strong> If you want power, choose <strong>Tool A</strong>. If you want simplicity, choose <strong>Tool B</strong>. Read on for the full breakdown.</p>
+  
+  <h2>Introduction</h2>
+  <p>Choosing between Tool A and Tool B is tough. Both are industry leaders, but they serve different needs.</p>
+
+  <h2>Deep Dive: Tool A</h2>
+  <p>Overview of Tool A and who it is best for.</p>
+  <h3>Key Features</h3>
+  <ul>
+      <li>Feature 1</li>
+      <li>Feature 2</li>
+  </ul>
+  
+  <h2>Deep Dive: Tool B</h2>
+  <p>Overview of Tool B and who it is best for.</p>
+  <h3>Key Features</h3>
+  <ul>
+      <li>Feature 1</li>
+      <li>Feature 2</li>
+  </ul>
+
+  <h2>Head-to-Head Comparison</h2>
+  <h3>1. Ease of Use</h3>
+  <p>Tool B is easier...</p>
+
+  <h3>2. Pricing</h3>
+  <p>Tool A offers better value...</p>
+
+  <h3>3. Support</h3>
+  <p>Both have 24/7 support...</p>
+
+  <h2>Final Verdict: Which Should You Buy?</h2>
+  <p><strong>Get Tool A if:</strong> You need advanced features.</p>
+  <p><strong>Get Tool B if:</strong> You are just starting out.</p>
+</section>`
+  },
+
   // 🔹 MEDIA BLOCKS (IMAGES / VIDEO)
   {
     id: 'image-block',

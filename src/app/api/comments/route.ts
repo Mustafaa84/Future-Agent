@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase, createAdminClient } from '@/lib/supabase'
-// Imports moved inside handler for server-side stability
-
+// Basic tag stripper since we are only allowing plain text (no tags)
+// This avoids heavy dependencies like jsdom which crash in the Vercel runtime
+function stripTags(html: string): string {
+  if (!html) return ''
+  return html
+    .replace(/<[^>]*>?/gm, '') // Remove HTML tags
+    .replace(/&[^;]+;/g, '')   // Remove HTML entities
+    .trim()
+}
 interface CommentRequestBody {
   post_id?: string
   tool_id?: string
@@ -115,16 +122,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Initialize DOMPurify inside the handler to be safe
-    const { JSDOM } = await import('jsdom');
-    const createDOMPurify = await import('dompurify');
-    const window = new JSDOM('').window;
-    const purify = createDOMPurify.default(window as any);
-
-    // Sanitize all user inputs
-    const sanitizedName = purify.sanitize(body.author_name.trim(), { ALLOWED_TAGS: [] })
-    const sanitizedEmail = body.author_email ? purify.sanitize(body.author_email.trim(), { ALLOWED_TAGS: [] }) : null
-    const sanitizedContent = purify.sanitize(body.content.trim(), { ALLOWED_TAGS: [] })
+    // Sanitize all user inputs using the lightweight tag stripper
+    const sanitizedName = stripTags(body.author_name)
+    const sanitizedEmail = body.author_email ? stripTags(body.author_email) : null
+    const sanitizedContent = stripTags(body.content)
 
     const insertData: any = {
       [idField]: idValue,

@@ -27,7 +27,8 @@ export async function fetchPublishedTools() {
             .from('ai_tools')
             .select('*')
             .eq('published', true)
-            .lte('published_date', new Date().toISOString())
+            // Relaxed filter: Allow tools scheduled within the next 24 hours (timezone buffer)
+            .lte('published_date', new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString())
             .order('published_date', { ascending: false })
             .order('rating', { ascending: false }),
         [] // Fallback

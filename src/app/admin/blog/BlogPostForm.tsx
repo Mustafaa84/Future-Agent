@@ -202,7 +202,12 @@ export default function BlogPostForm({
         tags: initialData.tags?.join(', ') || '',
         status: initialData.status || 'published',
         scheduled_at: initialData.scheduled_at
-          ? new Date(initialData.scheduled_at).toISOString().slice(0, 16)
+          ? (() => {
+            const date = new Date(initialData.scheduled_at)
+            const offset = date.getTimezoneOffset()
+            const localDate = new Date(date.getTime() - offset * 60 * 1000)
+            return localDate.toISOString().slice(0, 16)
+          })()
           : '',
         meta_title: initialData.meta_title || '',
         meta_description: initialData.meta_description || '',
@@ -337,7 +342,12 @@ export default function BlogPostForm({
       data.append('tags', formData.tags)
       data.append('featured_image', featuredImage || '')
       data.append('status', formData.status)
-      data.append('scheduled_at', formData.scheduled_at)
+      // FIX: Ensure we send a proper ISO string for the server to interpret correctly
+      if (formData.scheduled_at) {
+        data.append('scheduled_at', new Date(formData.scheduled_at).toISOString())
+      } else {
+        data.append('scheduled_at', '')
+      }
       data.append('reading_time', readingTime.toString())
 
       let result: { success: boolean; error?: string }

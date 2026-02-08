@@ -114,7 +114,9 @@ export async function createBlogPost(
       published_date = null
     } else if (status === 'published') {
       published = true
-      published_date = null // or new Date().toISOString() if you prefer
+      published_date = scheduled_at
+        ? new Date(scheduled_at).toISOString()
+        : new Date().toISOString()
     } else if (status === 'scheduled') {
       published = true
       published_date = scheduled_at
@@ -244,12 +246,22 @@ export async function updateBlogPost(
       published_date = null
     } else if (status === 'published') {
       published = true
-      published_date = null
+      // If we are updating, we ideally preserve the original publish date 
+      // unless a new scheduled_at is provided.
+      const { data: current } = await supabase
+        .from('blog_posts')
+        .select('published_date')
+        .eq('id', id)
+        .single()
+
+      published_date = scheduled_at
+        ? new Date(scheduled_at).toISOString()
+        : (current?.published_date || new Date().toISOString())
     } else if (status === 'scheduled') {
       published = true
       published_date = scheduled_at
         ? new Date(scheduled_at).toISOString()
-        : null
+        : new Date().toISOString() // Should not happen with validation but safer
     }
 
     const meta_title = (formData.get('meta_title') as string) || title

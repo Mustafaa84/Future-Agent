@@ -22,6 +22,8 @@ interface Category {
   name: string
 }
 
+export const dynamic = 'force-dynamic' // Ensure real-time updates for blog listing
+
 export default async function BlogPage({
   searchParams,
 }: {
@@ -35,7 +37,7 @@ export default async function BlogPage({
     .from('blog_posts')
     .select('*')
     .eq('published', true)
-    .lte('published_date', new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString())
+    .lte('published_date', new Date().toISOString())
     .order('published_date', { ascending: false })
     .limit(100) // Ensure a high enough limit to see all posts
 

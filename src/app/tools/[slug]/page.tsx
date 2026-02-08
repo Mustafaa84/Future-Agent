@@ -17,6 +17,7 @@ import Breadcrumbs from '@/components/SEO/Breadcrumbs'
 
 const EmailOptInClient = dynamic(() => import('@/components/EmailOptInClient'))
 import CommentsSection from '@/components/CommentsSection'
+import FAQAccordion from '@/components/FAQAccordion'
 
 interface PageParams {
   slug: string
@@ -182,9 +183,7 @@ export default async function ToolPage({ params }: PageProps) {
   if (tool.published_date) {
     const publishDate = new Date(tool.published_date)
     const now = new Date()
-    // Relaxed check: Allow 24h buffer for timezone differences
-    const oneDay = 24 * 60 * 60 * 1000
-    if (publishDate.getTime() - oneDay > now.getTime()) {
+    if (publishDate > now) {
       notFound()
     }
   }
@@ -673,19 +672,7 @@ export default async function ToolPage({ params }: PageProps) {
               </p>
 
               <div className="space-y-4">
-                {(faqs as FaqRecord[]).map((faq) => (
-                  <div
-                    key={faq.id}
-                    className="rounded-xl border border-slate-800 bg-slate-900/60 p-6"
-                  >
-                    <h3 className="mb-2 text-lg font-semibold text-white">
-                      {faq.question}
-                    </h3>
-                    <p className="leading-relaxed text-slate-400">
-                      {faq.answer}
-                    </p>
-                  </div>
-                ))}
+                <FAQAccordion faqs={faqs as FaqRecord[]} />
               </div>
             </div>
           </section>
@@ -730,7 +717,7 @@ export default async function ToolPage({ params }: PageProps) {
                   {tool.name} vs Competitors
                 </h2>
 
-                <div className="overflow-hidden rounded-3xl border border-slate-800 bg-slate-900/40 backdrop-blur-sm">
+                <div className="overflow-hidden rounded-3xl border border-slate-800 bg-slate-900/40 backdrop-blur-sm overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="bg-slate-800/50">

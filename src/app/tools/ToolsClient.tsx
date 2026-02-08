@@ -136,30 +136,33 @@ function ToolsContent({ tools, initialCategories, initialCategory = 'All' }: Too
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <section className="mx-auto max-w-6xl px-4 py-12">
-        <header className="max-w-3xl relative">
-          <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl">
-            {searchParams.get('compare') === 'true' ? (
-              <span className="bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
-                Battle Engine: Select Agents
-              </span>
-            ) : (
-              'Best AI Agents & Workflows'
+        <header className="max-w-4xl">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <h1 className={`${searchParams.get('compare') === 'true' ? 'text-2xl sm:text-4xl' : 'text-4xl sm:text-5xl'} font-extrabold tracking-tight`}>
+              {searchParams.get('compare') === 'true' ? (
+                <span className="bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent italic">
+                  Battle Engine: Select Agents
+                </span>
+              ) : (
+                'Best AI Agents & Workflows'
+              )}
+            </h1>
+
+            {searchParams.get('compare') === 'true' && (
+              <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-cyan-500/10 border border-cyan-500/30 w-fit shrink-0 backdrop-blur-sm self-start md:self-auto">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-400"></span>
+                </span>
+                <span className="text-[10px] font-black text-cyan-400 uppercase tracking-widest leading-none">Selection Mode Active</span>
+              </div>
             )}
-          </h1>
-          <p className="mt-3 text-sm sm:text-base text-slate-400">
+          </div>
+          <p className="mt-4 text-sm sm:text-base text-slate-400 max-w-2xl font-medium">
             {searchParams.get('compare') === 'true'
               ? 'Click the "+" button on any two agents below to initiate a live side-by-side battle analysis.'
               : 'Compare hand-picked autonomous AI agents and automated tools to build a workflow that actually gets work done.'}
           </p>
-
-          {searchParams.get('compare') === 'true' && (
-            <div className="absolute top-0 right-0 hidden md:block">
-              <div className="animate-pulse flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30">
-                <span className="w-2 h-2 rounded-full bg-cyan-400" />
-                <span className="text-[10px] font-black text-cyan-400 uppercase tracking-widest">Selection Mode Active</span>
-              </div>
-            </div>
-          )}
         </header>
 
         {/* Filter Controls Row */}

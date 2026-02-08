@@ -36,9 +36,12 @@ export default async function EditBlogPostPage({
     category: post.category || 'AI Tools',
     tags: post.tags || [],
     featured_image: post.featured_image || '',
-    status: post.published ? 'published' : 'draft',
+    // Check if post is effectively scheduled (published=true BUT date is in future)
+    status: (post.published && post.published_date && new Date(post.published_date) > new Date())
+      ? 'scheduled'
+      : (post.published ? 'published' : 'draft'),
     meta_title: post.meta_title || '',
     meta_description: post.meta_description || '',
-    reading_time: post.reading_time || 5  // ✅ FIXED: Load from database!
+    reading_time: post.reading_time || 5
   }} />
 }

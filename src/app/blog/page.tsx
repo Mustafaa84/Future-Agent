@@ -35,8 +35,7 @@ export default async function BlogPage({
     .from('blog_posts')
     .select('*')
     .eq('published', true)
-    // Removed date filter temporarily to debug missing posts
-    // .lte('published_date', new Date().toISOString()) 
+    .lte('published_date', new Date().toISOString())
     .order('published_date', { ascending: false })
     .limit(100) // Ensure a high enough limit to see all posts
 

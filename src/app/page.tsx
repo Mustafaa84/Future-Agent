@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import Image from 'next/image'
 
-export const revalidate = 1800 // 30 minutes
+export const dynamic = 'force-dynamic'
 
 import JsonLd from '@/components/SEO/JsonLd'
 import { organizationSchema, websiteSchema } from '@/lib/seo/schemas'

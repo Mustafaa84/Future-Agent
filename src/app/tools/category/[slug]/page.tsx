@@ -1,7 +1,7 @@
 import { supabase } from '@/lib/supabase'
 import { notFound } from 'next/navigation'
 
-export const revalidate = 3600 // 1 hour
+export const dynamic = 'force-dynamic'
 import ToolsClient from '../../ToolsClient'
 import { Metadata } from 'next'
 

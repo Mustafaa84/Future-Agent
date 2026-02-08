@@ -115,7 +115,11 @@ export default async function BlogPostPage({
   if (post && post.published && post.published_date) {
     const publishDate = new Date(post.published_date)
     const now = new Date()
-    if (publishDate > now) {
+
+    // Allow a small buffer (e.g., 24 hours) to account for timezone differences
+    // If the post is scheduled for "today", we want it to show up.
+    const oneDay = 24 * 60 * 60 * 1000
+    if (publishDate.getTime() - oneDay > now.getTime()) {
       // Post is scheduled for future - treat as not found
       return (
         <div className="min-h-screen bg-gradient-to-b from-slate-950 to-slate-900 pt-1 flex items-center justify-center">

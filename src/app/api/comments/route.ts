@@ -1,12 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase, createAdminClient } from '@/lib/supabase'
-import DOMPurify from 'dompurify'
-import { JSDOM } from 'jsdom'
-
-// Initialize DOMPurify for server-side use
-const window = new JSDOM('').window
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const purify = DOMPurify(window as any)
+// Imports moved inside handler for server-side stability
 
 interface CommentRequestBody {
   post_id?: string
@@ -57,8 +51,15 @@ export async function GET(request: NextRequest) {
 // POST - Submit a new comment
 export async function POST(request: NextRequest) {
   try {
-    const body: CommentRequestBody = await request.json()
-    const adminAuthClient = createAdminClient() // ✅ Use Admin Client
+    let body: CommentRequestBody;
+    try {
+      body = await request.json();
+    } catch (e) {
+      console.error('JSON Parse Error:', e);
+      return NextResponse.json({ error: 'Invalid JSON request body' }, { status: 400 });
+    }
+
+    const adminAuthClient = createAdminClient()
 
     const tableName = body.tool_id ? 'tool_comments' : 'blog_comments'
     const idField = body.tool_id ? 'tool_id' : 'post_id'
@@ -88,19 +89,24 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (body.content.trim().length > 1000) {
+    if (body.content.trim().length > 2000) {
       return NextResponse.json(
-        { error: 'Comment must be less than 1000 characters' },
+        { error: 'Comment must be less than 2000 characters' },
         { status: 400 }
       )
     }
 
     // Verify parent exists first
-    const { data: parentExists } = await adminAuthClient
+    const { data: parentExists, error: parentError } = await adminAuthClient
       .from(parentTable)
       .select('id')
       .eq('id', idValue)
-      .single()
+      .maybeSingle()
+
+    if (parentError) {
+      console.error('Parent Verification Error:', parentError);
+      return NextResponse.json({ error: 'Failed to verify item existence' }, { status: 500 });
+    }
 
     if (!parentExists) {
       return NextResponse.json(
@@ -109,31 +115,45 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Sanitize all user inputs to prevent XSS attacks
+    // Initialize DOMPurify inside the handler to be safe
+    const { JSDOM } = await import('jsdom');
+    const createDOMPurify = await import('dompurify');
+    const window = new JSDOM('').window;
+    const purify = createDOMPurify.default(window as any);
+
+    // Sanitize all user inputs
     const sanitizedName = purify.sanitize(body.author_name.trim(), { ALLOWED_TAGS: [] })
     const sanitizedEmail = body.author_email ? purify.sanitize(body.author_email.trim(), { ALLOWED_TAGS: [] }) : null
     const sanitizedContent = purify.sanitize(body.content.trim(), { ALLOWED_TAGS: [] })
 
+    const insertData: any = {
+      [idField]: idValue,
+      author_name: sanitizedName,
+      author_email: sanitizedEmail,
+      comment_text: sanitizedContent,
+      approved: false,
+      created_at: new Date().toISOString(),
+    };
+
+    // Rating is standard for both now based on schema check
+    insertData.rating = 5;
+
     const { data, error } = await adminAuthClient
       .from(tableName)
-      .insert({
-        [idField]: idValue,
-        author_name: sanitizedName,
-        author_email: sanitizedEmail,
-        comment_text: sanitizedContent,
-        rating: 5, // Default rating
-        approved: false,
-        created_at: new Date().toISOString(),
-      })
+      .insert(insertData)
       .select()
-      .single()
+      .limit(1)
 
     if (error) {
       console.error('Supabase Insert Error:', error)
-      throw new Error(error.message || 'Database error')
+      return NextResponse.json({ error: error.message || 'Database error' }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true, comment: data })
+    if (!data || data.length === 0) {
+      return NextResponse.json({ error: 'No data returned after insert' }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, comment: data[0] })
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error))
     console.error('Create comment error:', err)

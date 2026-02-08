@@ -80,7 +80,7 @@ export async function fetchLatestBlogPosts() {
             .from('blog_posts')
             .select('id, slug, title, excerpt, featured_image, category, reading_time')
             .eq('published', true)
-            .lte('published_date', new Date().toISOString())
+            .lte('published_date', new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString())
             .order('created_at', { ascending: false })
             .limit(3),
         []

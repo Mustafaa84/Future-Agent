@@ -35,7 +35,7 @@ export default async function BlogPage({
     .from('blog_posts')
     .select('*')
     .eq('published', true)
-    .lte('published_date', new Date().toISOString())
+    .lte('published_date', new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString())
     .order('published_date', { ascending: false })
     .limit(100) // Ensure a high enough limit to see all posts
 

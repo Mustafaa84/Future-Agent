@@ -182,7 +182,9 @@ export default async function ToolPage({ params }: PageProps) {
   if (tool.published_date) {
     const publishDate = new Date(tool.published_date)
     const now = new Date()
-    if (publishDate > now) {
+    // Relaxed check: Allow 24h buffer for timezone differences
+    const oneDay = 24 * 60 * 60 * 1000
+    if (publishDate.getTime() - oneDay > now.getTime()) {
       notFound()
     }
   }

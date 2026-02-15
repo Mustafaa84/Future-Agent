@@ -495,7 +495,10 @@ ${JSON.stringify(result.data, null, 2)}
           ...prev,
           content: scriptTag,
           category: 'Comparisons',
-          length: 'comparison'
+          length: 'comparison',
+          // ✅ Auto-generate featured image for comparisons (Dynamic OG)
+          // Use relative path for Next.js Image component compatibility
+          featured_image: `/api/og?a=${encodeURIComponent(result.data.toolA.name)}&b=${encodeURIComponent(result.data.toolB.name)}`
         }))
 
         // Auto-suggest title if empty

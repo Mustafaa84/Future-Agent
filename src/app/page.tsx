@@ -94,19 +94,26 @@ async function getComparisonData() {
 
   if (!data || data.length === 0) return fallbackPosts
 
-  return data.map((post, idx) => {
-    // Extract A and B from title "A vs B: Full Comparison" or slug "a-vs-b"
-    const slugParts = post.slug.split('-vs-')
-    const a = slugParts[0].charAt(0).toUpperCase() + slugParts[0].slice(1)
-    const b = (slugParts[1] || '').split('-')[0].charAt(0).toUpperCase() + (slugParts[1] || '').split('-')[0].slice(1)
+  try {
+    return data.map((post, idx) => {
+      // Extract A and B from title "A vs B: Full Comparison" or slug "a-vs-b"
+      const slugParts = post.slug.split('-vs-')
+      if (slugParts.length < 2) return fallbackPosts[idx % fallbackPosts.length] // Safety fallback
 
-    return {
-      a,
-      b: b || 'Alternative',
-      s: post.slug,
-      color: colors[idx % colors.length]
-    }
-  })
+      const a = slugParts[0].charAt(0).toUpperCase() + slugParts[0].slice(1)
+      const b = (slugParts[1] || '').split('-')[0].charAt(0).toUpperCase() + (slugParts[1] || '').split('-')[0].slice(1)
+
+      return {
+        a,
+        b: b || 'Alternative',
+        s: post.slug,
+        color: colors[idx % colors.length]
+      }
+    })
+  } catch (err) {
+    console.error("Error parsing comparison data:", err)
+    return fallbackPosts
+  }
 }
 
 export default async function Home() {

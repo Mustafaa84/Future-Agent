@@ -44,7 +44,13 @@ export async function generateMetadata({
   const title = post.meta_title || seoTemplates.blog.titleTemplate(post.title)
   const description = post.meta_description || seoTemplates.blog.descriptionTemplate(post.excerpt)
   const postUrl = `${seoConfig.siteUrl}/blog/${post.slug}`
-  const ogImage = post.featured_image || seoConfig.defaultOgImage
+  let ogImage = post.featured_image || seoConfig.defaultOgImage
+
+  // ✅ FIX: Ensure OG Image is an absolute URL
+  if (ogImage && ogImage.startsWith('/')) {
+    ogImage = `${seoConfig.siteUrl}${ogImage}`
+  }
+
 
 
   return {

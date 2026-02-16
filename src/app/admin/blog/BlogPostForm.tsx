@@ -485,9 +485,10 @@ export default function BlogPostForm({
       const result = await generateComparisonData(selectedToolA, selectedToolB)
 
       if (result.success && result.data) {
+        const comparisonData = result.data
         // Build the <script> tag with JSON (Widget Data)
         const scriptTag = `<script type="application/json" id="comparison-data">
-${JSON.stringify(result.data, null, 2)}
+${JSON.stringify(comparisonData, null, 2)}
 </script>`
 
         // Insert into content editor
@@ -498,11 +499,15 @@ ${JSON.stringify(result.data, null, 2)}
           length: 'comparison',
           // ✅ Auto-generate featured image for comparisons (Dynamic OG)
           // Use relative path for Next.js Image component compatibility
-          featured_image: `/api/og?a=${encodeURIComponent(result.data.toolA.name)}&b=${encodeURIComponent(result.data.toolB.name)}`
+          featured_image: comparisonData?.toolA?.name && comparisonData?.toolB?.name
+            ? `/api/og?a=${encodeURIComponent(comparisonData.toolA.name)}&b=${encodeURIComponent(comparisonData.toolB.name)}`
+            : ''
         }))
 
         // Auto-suggest title if empty
-        const suggestedTitle = `${result.data.toolA.name} vs ${result.data.toolB.name}: Which AI Tool is Better in 2026?`
+        const suggestedTitle = comparisonData?.toolA?.name && comparisonData?.toolB?.name
+          ? `${comparisonData.toolA.name} vs ${comparisonData.toolB.name}: Which AI Tool is Better in 2026?`
+          : ''
         if (!formData.title || formData.title.trim() === '') {
           setFormData((prev) => ({
             ...prev,

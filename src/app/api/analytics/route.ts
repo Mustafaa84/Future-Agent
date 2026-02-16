@@ -1,20 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { createHash } from 'crypto';
+
+/**
+ * Hash IP address for privacy compliance (GDPR)
+ * Uses SHA-256 to create a consistent but non-reversible hash
+ */
+function hashIP(ip: string): string {
+    if (!ip || ip === 'unknown') return 'unknown';
+    return createHash('sha256').update(ip).digest('hex');
+}
 
 export async function POST(request: NextRequest) {
     try {
         const { path, referrer } = await request.json();
         const userAgent = request.headers.get('user-agent');
 
-        // Simple hash for IP to respect privacy but allow unique counting if needed later
-        // In a real prod environment, you might use a library for this
-        const ip = request.headers.get('x-forwarded-for') || 'unknown';
+        // ✅ GDPR Compliant: Hash IP address instead of storing raw IP
+        const rawIP = request.headers.get('x-forwarded-for') || 'unknown';
+        const hashedIP = hashIP(rawIP);
 
         const { error } = await supabase.from('page_views').insert({
             path,
             referrer: referrer || null,
             user_agent: userAgent,
-            ip_hash: ip // Storing raw IP for now (simple), can hash if required
+            ip_hash: hashedIP // ✅ Now stores hashed IP
         });
 
         if (error) throw error;

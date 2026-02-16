@@ -10,6 +10,7 @@ import EmailOptInClient from '@/components/EmailOptInClient'
 import { getCategoryIcon } from '@/lib/icons'
 import { getCategoryImage } from '@/lib/category-assets'
 import ErrorBoundary from '@/components/ErrorBoundary'
+import BlogCard from '@/components/blog/BlogCard'
 import {
   fetchFeaturedTools,
   fetchLatestBlogPosts,
@@ -421,7 +422,7 @@ export default async function Home() {
         <section className="py-24 px-4 relative overflow-hidden">
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-cyan-500/5 rounded-full blur-[120px] pointer-events-none" />
 
-          <div className="mx-auto max-w-7xl relative">
+          <div className="mx-auto max-w-6xl relative">
             <div className="flex flex-col items-center text-center mb-16">
               <div className="max-w-3xl">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-[10px] font-bold uppercase tracking-widest mb-4 mx-auto">
@@ -439,12 +440,13 @@ export default async function Home() {
               </div>
             </div>
 
-            <div className="flex flex-wrap justify-center gap-4 md:gap-6 pb-12 transition-all">
-              {categories.map((cat) => (
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6 pb-12">
+              {categories.map((cat, idx) => (
                 <Link
                   key={cat.slug}
                   href={`/tools/category/${cat.slug}`}
-                  className="group relative w-[180px] md:w-[210px] h-[320px] md:h-[340px] rounded-[2rem] overflow-hidden border border-slate-800/50 hover:border-cyan-500/50 transition-all duration-700 shadow-2xl"
+                  className={`group relative h-[380px] md:h-[420px] rounded-[2rem] overflow-hidden border border-slate-800/50 hover:border-cyan-500/50 transition-all duration-700 shadow-2xl ${idx % 2 === 1 ? 'lg:translate-y-10' : ''
+                    }`}
                 >
                   {/* Background Image */}
                   <Image
@@ -457,14 +459,14 @@ export default async function Home() {
 
                   {/* Content Overlay */}
                   <div className="absolute inset-0 p-6 flex flex-col justify-end">
-                    <h3 className="text-white font-black text-lg md:text-xl tracking-tight mb-2 transform group-hover:-translate-y-1 transition-transform duration-500">
+                    <h3 className="text-white font-black text-xl md:text-2xl tracking-tight mb-3 transform group-hover:-translate-y-1 transition-transform duration-500">
                       {cat.name}
                     </h3>
                     <p className="text-slate-400 text-[10px] md:text-xs leading-relaxed group-hover:text-slate-100 transition-colors duration-500 line-clamp-2">
-                      {cat.description || `Advanced tools for ${cat.name.toLowerCase()} workflows.`}
+                      {cat.description || `Specialized research reporting and tool analysis for ${cat.name.toLowerCase()} vertically.`}
                     </p>
-                    <div className="mt-4 flex items-center gap-2 text-cyan-400 text-[9px] font-black uppercase tracking-[0.15em] opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all duration-500 delay-100">
-                      Insights <span>→</span>
+                    <div className="mt-6 flex items-center gap-2 text-cyan-400 text-[9px] font-black uppercase tracking-[0.2em] opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all duration-500 delay-100">
+                      Deep Dive <span>→</span>
                     </div>
                   </div>
                 </Link>
@@ -751,54 +753,11 @@ export default async function Home() {
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {latestPosts.map((post) => (
-                <Link
+                <BlogCard
                   key={post.id}
-                  href={`/blog/${post.slug}`}
-                  className="group bg-slate-900/60 border border-slate-800 rounded-2xl overflow-hidden hover:border-cyan-500/60 hover:bg-slate-900/80 transition-all hover:scale-[1.02]"
-                >
-                  <div className="relative w-full h-48 overflow-hidden bg-slate-800">
-                    {post.featured_image ? (
-                      <Image
-                        src={post.featured_image}
-                        alt={post.title}
-                        width={400}
-                        height={192}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-slate-900 flex items-center justify-center">
-                        <span className="text-slate-800 font-black text-4xl opacity-20">F.A</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="p-6">
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest flex items-center gap-1.5">
-                        <span>{getCategoryIcon(categories.find(c => c.name === post.category)?.icon || null)}</span>
-                        {post.category}
-                      </span>
-                      <span className="text-xs text-slate-500">
-                        {post.reading_time || 5} min read
-                      </span>
-                    </div>
-
-                    <h3 className="text-xl font-bold text-white mb-3 group-hover:text-cyan-400 transition leading-tight">
-                      {post.title}
-                    </h3>
-
-                    <p className="text-slate-400 text-sm mb-4 line-clamp-2 leading-relaxed">
-                      {post.excerpt}
-                    </p>
-
-                    <span className="text-sm font-semibold text-cyan-400 group-hover:text-cyan-300 flex items-center gap-1">
-                      <span>Read article</span>
-                      <span className="group-hover:translate-x-1 transition-transform">
-                        →
-                      </span>
-                    </span>
-                  </div>
-                </Link>
+                  post={post as any}
+                  className="bg-slate-900/60 border-slate-800 hover:border-cyan-500/60 hover:bg-slate-900/80 hover:scale-[1.02] shadow-xl"
+                />
               ))}
             </div>
           </div>

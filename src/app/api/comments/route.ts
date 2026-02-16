@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase, createAdminClient } from '@/lib/supabase'
+import { applyRateLimit, RateLimitPresets, addRateLimitHeaders } from '@/lib/rate-limit'
+
 // Basic tag stripper since we are only allowing plain text (no tags)
 // This avoids heavy dependencies like jsdom which crash in the Vercel runtime
 function stripTags(html: string): string {
@@ -58,6 +60,12 @@ export async function GET(request: NextRequest) {
 // POST - Submit a new comment
 export async function POST(request: NextRequest) {
   try {
+    // ✅ SECURITY: Apply rate limiting - 10 requests per minute
+    const rateLimitResponse = applyRateLimit(request, RateLimitPresets.MODERATE);
+    if (rateLimitResponse) {
+      return rateLimitResponse; // Return 429 if rate limited
+    }
+
     let body: CommentRequestBody;
     try {
       body = await request.json();
@@ -154,7 +162,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No data returned after insert' }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true, comment: data[0] })
+    // ✅ Add rate limit headers to response
+    const response = NextResponse.json({ success: true, comment: data[0] });
+    return addRateLimitHeaders(response, request, RateLimitPresets.MODERATE);
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error))
     console.error('Create comment error:', err)

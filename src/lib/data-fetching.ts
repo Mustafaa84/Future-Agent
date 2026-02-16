@@ -77,7 +77,7 @@ export async function fetchLatestBlogPosts() {
     return await fetchWithRetry(
         async () => await supabase
             .from('blog_posts')
-            .select('id, slug, title, excerpt, featured_image, category, reading_time')
+            .select('id, slug, title, excerpt, featured_image, category, category_slug, reading_time, tags, published_date')
             .eq('published', true)
             .lte('published_date', new Date().toISOString())
             .order('created_at', { ascending: false })

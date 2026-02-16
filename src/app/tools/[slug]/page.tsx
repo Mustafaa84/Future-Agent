@@ -869,7 +869,7 @@ export default async function ToolPage({ params }: PageProps) {
               </div>
             </div>
 
-            <div className="rounded-3xl border border-slate-900 bg-slate-900/20 p-8 backdrop-blur-xl">
+            <div className="rounded-3xl border border-slate-900 bg-slate-900/20 p-4 md:p-8 backdrop-blur-xl">
               <CommentsSection
                 contentId={tool.id}
                 contentType="tool"

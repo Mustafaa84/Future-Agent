@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
+import { applyRateLimit, RateLimitPresets, addRateLimitHeaders } from '@/lib/rate-limit';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(request: NextRequest) {
   try {
+    // ✅ SECURITY: Apply rate limiting - 3 requests per 5 minutes
+    const rateLimitResponse = applyRateLimit(request, RateLimitPresets.CONTACT_FORM);
+    if (rateLimitResponse) {
+      return rateLimitResponse; // Return 429 if rate limited
+    }
+
     const { name, email, subject, message } = await request.json();
 
     // Basic validation
@@ -52,10 +59,12 @@ export async function POST(request: NextRequest) {
       `,
     });
 
-    return NextResponse.json(
+    // ✅ Add rate limit headers to response
+    const response = NextResponse.json(
       { success: true, message: 'Message sent successfully' },
       { status: 200 }
     );
+    return addRateLimitHeaders(response, request, RateLimitPresets.CONTACT_FORM);
   } catch (error) {
     console.error('Contact form error:', error);
     return NextResponse.json(

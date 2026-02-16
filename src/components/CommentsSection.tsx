@@ -101,7 +101,7 @@ export default function CommentsSection({
   }
 
   return (
-    <section className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+    <section className="bg-slate-900 border border-slate-800 rounded-2xl p-4 md:p-6">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold text-white">
           User Reviews ({comments.length})
@@ -122,7 +122,7 @@ export default function CommentsSection({
 
       {/* Dropdown Form */}
       {isFormOpen && (
-        <div className="mb-6 bg-slate-950 border border-slate-700 rounded-xl p-6">
+        <div className="mb-6 bg-slate-950 border border-slate-700 rounded-xl p-4 md:p-6">
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
               <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-sm">

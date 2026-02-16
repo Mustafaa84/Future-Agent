@@ -1,12 +1,26 @@
 import { createAdminClient } from '@/lib/supabase'
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { applyRateLimit, RateLimitPresets, addRateLimitHeaders } from '@/lib/rate-limit'
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
     try {
+        // ✅ SECURITY: Apply rate limiting - 5 requests per hour
+        const rateLimitResponse = applyRateLimit(request, RateLimitPresets.SUBSCRIBE);
+        if (rateLimitResponse) {
+            return rateLimitResponse; // Return 429 if rate limited
+        }
+
         const { email, source, quizData } = await request.json()
 
-        if (!email || !email.includes('@')) {
-            return NextResponse.json({ error: 'Invalid email' }, { status: 400 })
+        // ✅ Strengthened email validation with comprehensive regex
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+        if (!email || typeof email !== 'string') {
+            return NextResponse.json({ error: 'Email is required' }, { status: 400 })
+        }
+
+        if (!emailRegex.test(email)) {
+            return NextResponse.json({ error: 'Invalid email address format' }, { status: 400 })
         }
 
         // Use Admin Client to bypass RLS for public subscriptions
@@ -66,7 +80,9 @@ export async function POST(request: Request) {
             }
         }
 
-        return NextResponse.json({ success: true })
+        // ✅ Add rate limit headers to response
+        const response = NextResponse.json({ success: true });
+        return addRateLimitHeaders(response, request, RateLimitPresets.SUBSCRIBE);
 
     } catch (e) {
         console.error('API Error:', e)

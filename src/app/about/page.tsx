@@ -123,9 +123,18 @@ export default async function AboutPage() {
             <section className="py-24 px-4 relative overflow-hidden">
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-cyan-500/5 rounded-full blur-[120px] pointer-events-none" />
                 <div className="mx-auto max-w-6xl relative">
-                    <div className="text-center mb-16">
-                        <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">The {categories.length} Power Pillars</h2>
-                        <p className="text-slate-400">Our strategic framework for the future of work.</p>
+                    <div className="flex flex-col items-center text-center mb-16">
+                        <div className="max-w-3xl">
+                            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-[10px] font-bold uppercase tracking-widest mb-4 mx-auto">
+                                Strategic Framework
+                            </div>
+                            <h2 className="text-4xl md:text-5xl font-black text-white italic tracking-tight">
+                                The {categories.length} <span className="bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent italic">Power Pillars</span>.
+                            </h2>
+                            <p className="mt-4 text-slate-400 text-lg leading-relaxed font-medium max-w-2xl mx-auto">
+                                Our foundational ecosystem for navigating the agentic revolution. Dive into the core disciplines redefining the future of work.
+                            </p>
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6 pb-12">

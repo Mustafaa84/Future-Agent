@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { ArrowLeft, Save, Loader2, Info } from 'lucide-react'
 import Link from 'next/link'
-import { revalidateCategory } from '@/app/actions/revalidate'
+import { revalidateCategory } from '@/app/actions/revalidate-category'
 
 interface CategoryFormProps {
     params: Promise<{ id: string }>

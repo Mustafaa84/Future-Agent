@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
-import { deleteBlogPost } from './actions'
+import { deleteBlogPost } from './delete-action'
 
 interface BlogPost {
   id: string

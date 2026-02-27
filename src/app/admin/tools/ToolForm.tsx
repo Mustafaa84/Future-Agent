@@ -16,7 +16,7 @@ import AlternativesRepeater from '@/components/admin/repeaters/AlternativesRepea
 import CategorySelect from '@/components/admin/CategorySelect'
 import TagsSelect from '@/components/admin/TagsSelect'
 import ImageUpload from '@/components/ImageUpload'
-import { revalidateTool } from '@/app/actions/revalidate'
+import { revalidateTool } from '@/app/actions/revalidate-tool'
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 type Tool = any

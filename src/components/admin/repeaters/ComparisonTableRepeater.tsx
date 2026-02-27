@@ -2,6 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
+import {
+  addComparisonRow as serverAddComparisonRow,
+  updateComparisonRow as serverUpdateComparisonRow,
+  deleteComparisonRow as serverDeleteComparisonRow,
+  reorderComparisonRows as serverReorderComparisonRows,
+} from '@/app/actions/tool-repeater-actions'
 
 interface ComparisonRow {
   id?: string
@@ -25,30 +31,30 @@ export default function ComparisonTableRepeater({ toolId, mode }: ComparisonTabl
   const [loading, setLoading] = useState(mode === 'edit')
   const [saving, setSaving] = useState<string | null>(null)
 
-useEffect(() => {
-  const loadComparisonRows = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('tool_comparisons')
-        .select('*')
-        .eq('tool_id', toolId)
-        .order('sort_order', { ascending: true })
+  useEffect(() => {
+    const loadComparisonRows = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('tool_comparisons')
+          .select('*')
+          .eq('tool_id', toolId)
+          .order('sort_order', { ascending: true })
 
-      if (error) throw error
-      setRows(data || [])
-    } catch (err) {
-      console.error('Error loading comparison rows:', err)
-    } finally {
+        if (error) throw error
+        setRows(data || [])
+      } catch (err) {
+        console.error('Error loading comparison rows:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    if (mode === 'edit' && toolId) {
+      loadComparisonRows()
+    } else {
       setLoading(false)
     }
-  }
-
-  if (mode === 'edit' && toolId) {
-    loadComparisonRows()
-  } else {
-    setLoading(false)
-  }
-}, [toolId, mode])
+  }, [toolId, mode])
 
   const addRow = async () => {
     const newRow: ComparisonRow = {
@@ -64,13 +70,7 @@ useEffect(() => {
     if (mode === 'edit' && toolId) {
       try {
         setSaving('new')
-        const { data, error } = await supabase
-          .from('tool_comparisons')
-          .insert([{ ...newRow, tool_id: toolId }])
-          .select()
-          .single()
-
-        if (error) throw error
+        const data = await serverAddComparisonRow(toolId, newRow)
         setRows([...rows, data])
       } catch (err) {
         console.error('Error adding row:', err)
@@ -91,12 +91,7 @@ useEffect(() => {
     if (mode === 'edit' && updated[index].id) {
       try {
         setSaving(updated[index].id!)
-        const { error } = await supabase
-          .from('tool_comparisons')
-          .update({ [field]: value })
-          .eq('id', updated[index].id)
-
-        if (error) throw error
+        await serverUpdateComparisonRow(updated[index].id!, { [field]: value })
       } catch (err) {
         console.error('Error updating row:', err)
       } finally {
@@ -113,13 +108,7 @@ useEffect(() => {
 
       try {
         setSaving(row.id)
-        const { error } = await supabase
-          .from('tool_comparisons')
-          .delete()
-          .eq('id', row.id)
-
-        if (error) throw error
-
+        await serverDeleteComparisonRow(row.id)
         const updated = rows.filter((_, i) => i !== index)
         setRows(updated)
         await reorderRows(updated)
@@ -161,13 +150,9 @@ useEffect(() => {
 
   const reorderRows = async (orderedRows: ComparisonRow[]) => {
     if (mode !== 'edit') return
-
     try {
-      const updates = orderedRows.map((r, index) =>
-        supabase.from('tool_comparisons').update({ sort_order: index }).eq('id', r.id),
-      )
-
-      await Promise.all(updates)
+      const items = orderedRows.filter((r) => r.id).map((r, index) => ({ id: r.id!, sort_order: index }))
+      await serverReorderComparisonRows(items)
     } catch (err) {
       console.error('Error reordering rows:', err)
     }

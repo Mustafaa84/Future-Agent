@@ -2,6 +2,16 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
+import {
+  addPro as serverAddPro,
+  updatePro as serverUpdatePro,
+  deletePro as serverDeletePro,
+  reorderPros as serverReorderPros,
+  addCon as serverAddCon,
+  updateCon as serverUpdateCon,
+  deleteCon as serverDeleteCon,
+  reorderCons as serverReorderCons,
+} from '@/app/actions/tool-repeater-actions'
 
 interface Pro {
   id?: string
@@ -28,40 +38,40 @@ export default function ProsConsRepeater({ toolId, mode }: ProsConsRepeaterProps
   const [loading, setLoading] = useState(mode === 'edit')
   const [saving, setSaving] = useState<string | null>(null)
 
-useEffect(() => {
-  const loadData = async () => {
-    try {
-      const [prosResult, consResult] = await Promise.all([
-        supabase
-          .from('tool_pros')
-          .select('*')
-          .eq('tool_id', toolId)
-          .order('sort_order', { ascending: true }),
-        supabase
-          .from('tool_cons')
-          .select('*')
-          .eq('tool_id', toolId)
-          .order('sort_order', { ascending: true }),
-      ])
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [prosResult, consResult] = await Promise.all([
+          supabase
+            .from('tool_pros')
+            .select('*')
+            .eq('tool_id', toolId)
+            .order('sort_order', { ascending: true }),
+          supabase
+            .from('tool_cons')
+            .select('*')
+            .eq('tool_id', toolId)
+            .order('sort_order', { ascending: true }),
+        ])
 
-      if (prosResult.error) throw prosResult.error
-      if (consResult.error) throw consResult.error
+        if (prosResult.error) throw prosResult.error
+        if (consResult.error) throw consResult.error
 
-      setPros(prosResult.data || [])
-      setCons(consResult.data || [])
-    } catch (err) {
-      console.error('Error loading pros/cons:', err)
-    } finally {
+        setPros(prosResult.data || [])
+        setCons(consResult.data || [])
+      } catch (err) {
+        console.error('Error loading pros/cons:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    if (mode === 'edit' && toolId) {
+      loadData()
+    } else {
       setLoading(false)
     }
-  }
-
-  if (mode === 'edit' && toolId) {
-    loadData()
-  } else {
-    setLoading(false)
-  }
-}, [toolId, mode])
+  }, [toolId, mode])
 
   const addPro = async () => {
     const newPro: Pro = {
@@ -72,13 +82,7 @@ useEffect(() => {
     if (mode === 'edit' && toolId) {
       try {
         setSaving('new-pro')
-        const { data, error } = await supabase
-          .from('tool_pros')
-          .insert([{ ...newPro, tool_id: toolId }])
-          .select()
-          .single()
-
-        if (error) throw error
+        const data = await serverAddPro(toolId, newPro)
         setPros([...pros, data])
       } catch (err) {
         console.error('Error adding pro:', err)
@@ -99,12 +103,7 @@ useEffect(() => {
     if (mode === 'edit' && updated[index].id) {
       try {
         setSaving(updated[index].id!)
-        const { error } = await supabase
-          .from('tool_pros')
-          .update({ text: value })
-          .eq('id', updated[index].id)
-
-        if (error) throw error
+        await serverUpdatePro(updated[index].id!, { text: value })
       } catch (err) {
         console.error('Error updating pro:', err)
       } finally {
@@ -121,13 +120,7 @@ useEffect(() => {
 
       try {
         setSaving(pro.id)
-        const { error } = await supabase
-          .from('tool_pros')
-          .delete()
-          .eq('id', pro.id)
-
-        if (error) throw error
-
+        await serverDeletePro(pro.id)
         const updated = pros.filter((_, i) => i !== index)
         setPros(updated)
         await reorderPros(updated)
@@ -169,13 +162,9 @@ useEffect(() => {
 
   const reorderPros = async (orderedPros: Pro[]) => {
     if (mode !== 'edit') return
-
     try {
-      const updates = orderedPros.map((p, index) =>
-        supabase.from('tool_pros').update({ sort_order: index }).eq('id', p.id),
-      )
-
-      await Promise.all(updates)
+      const items = orderedPros.filter((p) => p.id).map((p, index) => ({ id: p.id!, sort_order: index }))
+      await serverReorderPros(items)
     } catch (err) {
       console.error('Error reordering pros:', err)
     }
@@ -190,13 +179,7 @@ useEffect(() => {
     if (mode === 'edit' && toolId) {
       try {
         setSaving('new-con')
-        const { data, error } = await supabase
-          .from('tool_cons')
-          .insert([{ ...newCon, tool_id: toolId }])
-          .select()
-          .single()
-
-        if (error) throw error
+        const data = await serverAddCon(toolId, newCon)
         setCons([...cons, data])
       } catch (err) {
         console.error('Error adding con:', err)
@@ -217,12 +200,7 @@ useEffect(() => {
     if (mode === 'edit' && updated[index].id) {
       try {
         setSaving(updated[index].id!)
-        const { error } = await supabase
-          .from('tool_cons')
-          .update({ text: value })
-          .eq('id', updated[index].id)
-
-        if (error) throw error
+        await serverUpdateCon(updated[index].id!, { text: value })
       } catch (err) {
         console.error('Error updating con:', err)
       } finally {
@@ -239,13 +217,7 @@ useEffect(() => {
 
       try {
         setSaving(con.id)
-        const { error } = await supabase
-          .from('tool_cons')
-          .delete()
-          .eq('id', con.id)
-
-        if (error) throw error
-
+        await serverDeleteCon(con.id)
         const updated = cons.filter((_, i) => i !== index)
         setCons(updated)
         await reorderCons(updated)
@@ -287,13 +259,9 @@ useEffect(() => {
 
   const reorderCons = async (orderedCons: Con[]) => {
     if (mode !== 'edit') return
-
     try {
-      const updates = orderedCons.map((c, index) =>
-        supabase.from('tool_cons').update({ sort_order: index }).eq('id', c.id),
-      )
-
-      await Promise.all(updates)
+      const items = orderedCons.filter((c) => c.id).map((c, index) => ({ id: c.id!, sort_order: index }))
+      await serverReorderCons(items)
     } catch (err) {
       console.error('Error reordering cons:', err)
     }

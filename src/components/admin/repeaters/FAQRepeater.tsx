@@ -2,6 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
+import {
+  addFaq as serverAddFaq,
+  updateFaq as serverUpdateFaq,
+  deleteFaq as serverDeleteFaq,
+  reorderFaqs as serverReorderFaqs,
+} from '@/app/actions/tool-repeater-actions'
 
 interface FAQ {
   id?: string
@@ -22,30 +28,30 @@ export default function FAQRepeater({ toolId, mode }: FAQRepeaterProps) {
   const [saving, setSaving] = useState<string | null>(null)
 
   // Load FAQs from database (edit mode only)
-useEffect(() => {
-  const loadFaqs = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('tool_faqs')
-        .select('*')
-        .eq('tool_id', toolId)
-        .order('sort_order', { ascending: true })
+  useEffect(() => {
+    const loadFaqs = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('tool_faqs')
+          .select('*')
+          .eq('tool_id', toolId)
+          .order('sort_order', { ascending: true })
 
-      if (error) throw error
-      setFaqs(data || [])
-    } catch (err) {
-      console.error('Error loading FAQs:', err)
-    } finally {
+        if (error) throw error
+        setFaqs(data || [])
+      } catch (err) {
+        console.error('Error loading FAQs:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    if (mode === 'edit' && toolId) {
+      loadFaqs()
+    } else {
       setLoading(false)
     }
-  }
-
-  if (mode === 'edit' && toolId) {
-    loadFaqs()
-  } else {
-    setLoading(false)
-  }
-}, [toolId, mode])
+  }, [toolId, mode])
 
   const addFaq = async () => {
     const newFaq: FAQ = {
@@ -57,13 +63,7 @@ useEffect(() => {
     if (mode === 'edit' && toolId) {
       try {
         setSaving('new')
-        const { data, error } = await supabase
-          .from('tool_faqs')
-          .insert([{ ...newFaq, tool_id: toolId }])
-          .select()
-          .single()
-
-        if (error) throw error
+        const data = await serverAddFaq(toolId, newFaq)
         setFaqs([...faqs, data])
       } catch (err) {
         console.error('Error adding FAQ:', err)
@@ -84,12 +84,7 @@ useEffect(() => {
     if (mode === 'edit' && updated[index].id) {
       try {
         setSaving(updated[index].id!)
-        const { error } = await supabase
-          .from('tool_faqs')
-          .update({ [field]: value })
-          .eq('id', updated[index].id)
-
-        if (error) throw error
+        await serverUpdateFaq(updated[index].id!, { [field]: value })
       } catch (err) {
         console.error('Error updating FAQ:', err)
       } finally {
@@ -106,13 +101,7 @@ useEffect(() => {
 
       try {
         setSaving(faq.id)
-        const { error } = await supabase
-          .from('tool_faqs')
-          .delete()
-          .eq('id', faq.id)
-
-        if (error) throw error
-
+        await serverDeleteFaq(faq.id)
         const updated = faqs.filter((_, i) => i !== index)
         setFaqs(updated)
         await reorderFaqs(updated)
@@ -154,13 +143,9 @@ useEffect(() => {
 
   const reorderFaqs = async (orderedFaqs: FAQ[]) => {
     if (mode !== 'edit') return
-
     try {
-      const updates = orderedFaqs.map((f, index) =>
-        supabase.from('tool_faqs').update({ sort_order: index }).eq('id', f.id),
-      )
-
-      await Promise.all(updates)
+      const items = orderedFaqs.filter((f) => f.id).map((f, index) => ({ id: f.id!, sort_order: index }))
+      await serverReorderFaqs(items)
     } catch (err) {
       console.error('Error reordering FAQs:', err)
     }

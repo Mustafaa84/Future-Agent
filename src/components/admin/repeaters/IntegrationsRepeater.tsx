@@ -3,6 +3,12 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import ImageUpload from '@/components/ImageUpload'
+import {
+    addIntegration as serverAddIntegration,
+    updateIntegration as serverUpdateIntegration,
+    deleteIntegration as serverDeleteIntegration,
+    reorderIntegrations as serverReorderIntegrations,
+} from '@/app/actions/tool-repeater-actions'
 
 interface Integration {
     id?: string
@@ -62,13 +68,7 @@ export default function IntegrationsRepeater({ toolId, mode }: IntegrationsRepea
         if (mode === 'edit' && toolId) {
             try {
                 setSaving('new')
-                const { data, error } = await supabase
-                    .from('tool_integrations')
-                    .insert([{ ...newIntegration, tool_id: toolId }])
-                    .select()
-                    .single()
-
-                if (error) throw error
+                const data = await serverAddIntegration(toolId, newIntegration)
                 setIntegrations([...integrations, data])
             } catch (err) {
                 console.error('Error adding integration:', err)
@@ -89,12 +89,7 @@ export default function IntegrationsRepeater({ toolId, mode }: IntegrationsRepea
         if (mode === 'edit' && updated[index].id) {
             try {
                 setSaving(updated[index].id!)
-                const { error } = await supabase
-                    .from('tool_integrations')
-                    .update({ [field]: value })
-                    .eq('id', updated[index].id)
-
-                if (error) throw error
+                await serverUpdateIntegration(updated[index].id!, { [field]: value })
             } catch (err) {
                 console.error('Error updating integration:', err)
             } finally {
@@ -111,13 +106,7 @@ export default function IntegrationsRepeater({ toolId, mode }: IntegrationsRepea
 
             try {
                 setSaving(integration.id)
-                const { error } = await supabase
-                    .from('tool_integrations')
-                    .delete()
-                    .eq('id', integration.id)
-
-                if (error) throw error
-
+                await serverDeleteIntegration(integration.id)
                 const updated = integrations.filter((_, i) => i !== index)
                 setIntegrations(updated)
                 await reorderIntegrations(updated)
@@ -159,13 +148,9 @@ export default function IntegrationsRepeater({ toolId, mode }: IntegrationsRepea
 
     const reorderIntegrations = async (orderedIntegrations: Integration[]) => {
         if (mode !== 'edit') return
-
         try {
-            const updates = orderedIntegrations.map((f, index) =>
-                supabase.from('tool_integrations').update({ sort_order: index }).eq('id', f.id),
-            )
-
-            await Promise.all(updates)
+            const items = orderedIntegrations.filter((f) => f.id).map((f, index) => ({ id: f.id!, sort_order: index }))
+            await serverReorderIntegrations(items)
         } catch (err) {
             console.error('Error reordering integrations:', err)
         }

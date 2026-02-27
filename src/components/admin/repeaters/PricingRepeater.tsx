@@ -2,6 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
+import {
+  addPricingPlan as serverAddPricingPlan,
+  updatePricingPlan as serverUpdatePricingPlan,
+  deletePricingPlan as serverDeletePricingPlan,
+  reorderPricingPlans as serverReorderPricingPlans,
+} from '@/app/actions/tool-repeater-actions'
 
 interface PricingPlan {
   id?: string
@@ -54,6 +60,13 @@ export default function PricingRepeater({
     }
   }, [toolId, mode])
 
+  // Expose data for create mode form submission
+  useEffect(() => {
+    if (mode === 'create') {
+      ; (window as unknown as Record<string, unknown>).__pricingData = plans
+    }
+  }, [plans, mode])
+
   const addPlan = async () => {
     const newPlan: PricingPlan = {
       plan_name: 'New Plan',
@@ -68,13 +81,7 @@ export default function PricingRepeater({
     if (mode === 'edit' && toolId) {
       try {
         setSaving('new')
-        const { data, error } = await supabase
-          .from('tool_pricing_plans')
-          .insert([{ ...newPlan, tool_id: toolId }])
-          .select()
-          .single()
-
-        if (error) throw error
+        const data = await serverAddPricingPlan(toolId, newPlan)
         setPlans([...plans, data])
       } catch (err) {
         console.error('Error adding plan:', err)
@@ -104,16 +111,10 @@ export default function PricingRepeater({
 
       if (mode === 'edit') {
         try {
-          const unmarkUpdates = updated
+          const unmarkIds = updated
             .filter((p, i) => i !== index && p.id)
-            .map((p) =>
-              supabase
-                .from('tool_pricing_plans')
-                .update({ is_popular: false })
-                .eq('id', p.id)
-            )
-
-          await Promise.all(unmarkUpdates)
+            .map((p) => serverUpdatePricingPlan(p.id!, { is_popular: false }))
+          await Promise.all(unmarkIds)
         } catch (err) {
           console.error('Error unmarking other plans:', err)
         }
@@ -126,12 +127,7 @@ export default function PricingRepeater({
     if (mode === 'edit' && updated[index].id) {
       try {
         setSaving(updated[index].id!)
-        const { error } = await supabase
-          .from('tool_pricing_plans')
-          .update({ [field]: value })
-          .eq('id', updated[index].id)
-
-        if (error) throw error
+        await serverUpdatePricingPlan(updated[index].id!, { [field]: value })
       } catch (err) {
         console.error('Error updating plan:', err)
       } finally {
@@ -149,12 +145,7 @@ export default function PricingRepeater({
 
       try {
         setSaving(plan.id)
-        const { error } = await supabase
-          .from('tool_pricing_plans')
-          .delete()
-          .eq('id', plan.id)
-
-        if (error) throw error
+        await serverDeletePricingPlan(plan.id)
 
         const updated = plans.filter((_, i) => i !== index)
         setPlans(updated)
@@ -197,16 +188,11 @@ export default function PricingRepeater({
 
   const reorderPlans = async (orderedPlans: PricingPlan[]) => {
     if (mode !== 'edit') return
-
     try {
-      const updates = orderedPlans.map((p, index) =>
-        supabase
-          .from('tool_pricing_plans')
-          .update({ sort_order: index })
-          .eq('id', p.id)
-      )
-
-      await Promise.all(updates)
+      const items = orderedPlans
+        .filter((p) => p.id)
+        .map((p, index) => ({ id: p.id!, sort_order: index }))
+      await serverReorderPricingPlans(items)
     } catch (err) {
       console.error('Error reordering plans:', err)
     }
@@ -231,12 +217,9 @@ export default function PricingRepeater({
     if (mode === 'edit' && updated[planIndex].id) {
       try {
         setSaving(updated[planIndex].id!)
-        const { error } = await supabase
-          .from('tool_pricing_plans')
-          .update({ features: updated[planIndex].features })
-          .eq('id', updated[planIndex].id)
-
-        if (error) throw error
+        await serverUpdatePricingPlan(updated[planIndex].id!, {
+          features: updated[planIndex].features,
+        })
       } catch (err) {
         console.error('Error updating features:', err)
       } finally {
@@ -254,12 +237,9 @@ export default function PricingRepeater({
 
     if (mode === 'edit' && updated[planIndex].id) {
       try {
-        const { error } = await supabase
-          .from('tool_pricing_plans')
-          .update({ features: updated[planIndex].features })
-          .eq('id', updated[planIndex].id)
-
-        if (error) throw error
+        await serverUpdatePricingPlan(updated[planIndex].id!, {
+          features: updated[planIndex].features,
+        })
       } catch (err) {
         console.error('Error deleting feature:', err)
       }
@@ -286,11 +266,10 @@ export default function PricingRepeater({
         {plans.map((plan, planIndex) => (
           <div
             key={plan.id || planIndex}
-            className={`relative rounded-xl border-2 p-6 transition-all ${
-              plan.is_popular
+            className={`relative rounded-xl border-2 p-6 transition-all ${plan.is_popular
                 ? 'border-cyan-500 bg-cyan-900/20 scale-105'
                 : 'border-slate-700 bg-slate-900/50 hover:border-cyan-600'
-            }`}
+              }`}
           >
             {/* Saving indicator */}
             {saving === plan.id && (

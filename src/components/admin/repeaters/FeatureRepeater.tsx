@@ -2,6 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
+import {
+  addFeature as serverAddFeature,
+  updateFeature as serverUpdateFeature,
+  deleteFeature as serverDeleteFeature,
+  reorderFeatures as serverReorderFeatures,
+} from '@/app/actions/tool-repeater-actions'
 
 interface Feature {
   id?: string
@@ -22,30 +28,30 @@ export default function FeatureRepeater({ toolId, mode }: FeatureRepeaterProps) 
   const [loading, setLoading] = useState(mode === 'edit')
   const [saving, setSaving] = useState<string | null>(null)
 
-useEffect(() => {
-  const loadFeatures = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('tool_features')
-        .select('*')
-        .eq('tool_id', toolId)
-        .order('sort_order', { ascending: true })
+  useEffect(() => {
+    const loadFeatures = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('tool_features')
+          .select('*')
+          .eq('tool_id', toolId)
+          .order('sort_order', { ascending: true })
 
-      if (error) throw error
-      setFeatures(data || [])
-    } catch (err) {
-      console.error('Error loading features:', err)
-    } finally {
+        if (error) throw error
+        setFeatures(data || [])
+      } catch (err) {
+        console.error('Error loading features:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    if (mode === 'edit' && toolId) {
+      loadFeatures()
+    } else {
       setLoading(false)
     }
-  }
-
-  if (mode === 'edit' && toolId) {
-    loadFeatures()
-  } else {
-    setLoading(false)
-  }
-}, [toolId, mode])
+  }, [toolId, mode])
 
   const addFeature = async () => {
     const newFeature: Feature = {
@@ -58,13 +64,7 @@ useEffect(() => {
     if (mode === 'edit' && toolId) {
       try {
         setSaving('new')
-        const { data, error } = await supabase
-          .from('tool_features')
-          .insert([{ ...newFeature, tool_id: toolId }])
-          .select()
-          .single()
-
-        if (error) throw error
+        const data = await serverAddFeature(toolId, newFeature)
         setFeatures([...features, data])
       } catch (err) {
         console.error('Error adding feature:', err)
@@ -85,12 +85,7 @@ useEffect(() => {
     if (mode === 'edit' && updated[index].id) {
       try {
         setSaving(updated[index].id!)
-        const { error } = await supabase
-          .from('tool_features')
-          .update({ [field]: value })
-          .eq('id', updated[index].id)
-
-        if (error) throw error
+        await serverUpdateFeature(updated[index].id!, { [field]: value })
       } catch (err) {
         console.error('Error updating feature:', err)
       } finally {
@@ -107,13 +102,7 @@ useEffect(() => {
 
       try {
         setSaving(feature.id)
-        const { error } = await supabase
-          .from('tool_features')
-          .delete()
-          .eq('id', feature.id)
-
-        if (error) throw error
-
+        await serverDeleteFeature(feature.id)
         const updated = features.filter((_, i) => i !== index)
         setFeatures(updated)
         await reorderFeatures(updated)
@@ -155,13 +144,9 @@ useEffect(() => {
 
   const reorderFeatures = async (orderedFeatures: Feature[]) => {
     if (mode !== 'edit') return
-
     try {
-      const updates = orderedFeatures.map((f, index) =>
-        supabase.from('tool_features').update({ sort_order: index }).eq('id', f.id),
-      )
-
-      await Promise.all(updates)
+      const items = orderedFeatures.filter((f) => f.id).map((f, index) => ({ id: f.id!, sort_order: index }))
+      await serverReorderFeatures(items)
     } catch (err) {
       console.error('Error reordering features:', err)
     }

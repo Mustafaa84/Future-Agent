@@ -3,6 +3,13 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import ImageUpload from '@/components/ImageUpload'
+import {
+  ensureToolReview,
+  addReviewSection as serverAddReviewSection,
+  updateReviewSection as serverUpdateReviewSection,
+  deleteReviewSection as serverDeleteReviewSection,
+  reorderReviewSections as serverReorderReviewSections,
+} from '@/app/actions/tool-repeater-actions'
 
 interface ReviewSection {
   id?: string
@@ -24,58 +31,52 @@ export default function ReviewSectionsRepeater({ toolId, mode }: ReviewSectionsR
   const [loading, setLoading] = useState(mode === 'edit')
   const [saving, setSaving] = useState<string | null>(null)
 
-useEffect(() => {
-  const loadReviewAndSections = async () => {
-    try {
-      const { data: reviewData, error: reviewError } = await supabase
-        .from('tool_reviews')
-        .select('id')
-        .eq('tool_id', toolId)
-        .single()
+  useEffect(() => {
+    const loadReviewAndSections = async () => {
+      try {
+        const { data: reviewData, error: reviewError } = await supabase
+          .from('tool_reviews')
+          .select('id')
+          .eq('tool_id', toolId)
+          .single()
 
-      if (reviewError && reviewError.code !== 'PGRST116') {
-        throw reviewError
+        if (reviewError && reviewError.code !== 'PGRST116') {
+          throw reviewError
+        }
+
+        if (reviewData) {
+          setReviewId(reviewData.id)
+
+          const { data: sectionsData, error: sectionsError } = await supabase
+            .from('tool_review_sections')
+            .select('*')
+            .eq('review_id', reviewData.id)
+            .order('sort_order', { ascending: true })
+
+          if (sectionsError) throw sectionsError
+          setSections(sectionsData || [])
+        }
+      } catch (err) {
+        console.error('Error loading review sections:', err)
+      } finally {
+        setLoading(false)
       }
+    }
 
-      if (reviewData) {
-        setReviewId(reviewData.id)
-
-        const { data: sectionsData, error: sectionsError } = await supabase
-          .from('tool_review_sections')
-          .select('*')
-          .eq('review_id', reviewData.id)
-          .order('sort_order', { ascending: true })
-
-        if (sectionsError) throw sectionsError
-        setSections(sectionsData || [])
-      }
-    } catch (err) {
-      console.error('Error loading review sections:', err)
-    } finally {
+    if (mode === 'edit' && toolId) {
+      loadReviewAndSections()
+    } else {
       setLoading(false)
     }
-  }
-
-  if (mode === 'edit' && toolId) {
-    loadReviewAndSections()
-  } else {
-    setLoading(false)
-  }
-}, [toolId, mode])
+  }, [toolId, mode])
 
   const ensureReviewExists = async (): Promise<string | null> => {
     if (reviewId) return reviewId
-
+    if (!toolId) return null
     try {
-      const { data, error } = await supabase
-        .from('tool_reviews')
-        .insert([{ tool_id: toolId, intro: '' }])
-        .select()
-        .single()
-
-      if (error) throw error
-      setReviewId(data.id)
-      return data.id
+      const id = await ensureToolReview(toolId)
+      setReviewId(id)
+      return id
     } catch (err) {
       console.error('Error creating review:', err)
       return null
@@ -100,13 +101,7 @@ useEffect(() => {
           return
         }
 
-        const { data, error } = await supabase
-          .from('tool_review_sections')
-          .insert([{ ...newSection, review_id: currentReviewId }])
-          .select()
-          .single()
-
-        if (error) throw error
+        const data = await serverAddReviewSection(currentReviewId, newSection)
         setSections([...sections, data])
       } catch (err) {
         console.error('Error adding section:', err)
@@ -127,12 +122,7 @@ useEffect(() => {
     if (mode === 'edit' && updated[index].id) {
       try {
         setSaving(updated[index].id!)
-        const { error } = await supabase
-          .from('tool_review_sections')
-          .update({ [field]: value })
-          .eq('id', updated[index].id)
-
-        if (error) throw error
+        await serverUpdateReviewSection(updated[index].id!, { [field]: value })
       } catch (err) {
         console.error('Error updating section:', err)
       } finally {
@@ -149,13 +139,7 @@ useEffect(() => {
 
       try {
         setSaving(section.id)
-        const { error } = await supabase
-          .from('tool_review_sections')
-          .delete()
-          .eq('id', section.id)
-
-        if (error) throw error
-
+        await serverDeleteReviewSection(section.id)
         const updated = sections.filter((_, i) => i !== index)
         setSections(updated)
         await reorderSections(updated)
@@ -197,13 +181,9 @@ useEffect(() => {
 
   const reorderSections = async (orderedSections: ReviewSection[]) => {
     if (mode !== 'edit') return
-
     try {
-      const updates = orderedSections.map((s, index) =>
-        supabase.from('tool_review_sections').update({ sort_order: index }).eq('id', s.id),
-      )
-
-      await Promise.all(updates)
+      const items = orderedSections.filter((s) => s.id).map((s, index) => ({ id: s.id!, sort_order: index }))
+      await serverReorderReviewSections(items)
     } catch (err) {
       console.error('Error reordering sections:', err)
     }

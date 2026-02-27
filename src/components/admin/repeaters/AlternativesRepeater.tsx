@@ -2,6 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
+import {
+  addAlternative as serverAddAlternative,
+  updateAlternative as serverUpdateAlternative,
+  deleteAlternative as serverDeleteAlternative,
+  reorderAlternatives as serverReorderAlternatives,
+} from '@/app/actions/tool-repeater-actions'
 
 interface Alternative {
   id?: string
@@ -62,13 +68,7 @@ export default function AlternativesRepeater({
     if (mode === 'edit' && toolId) {
       try {
         setSaving('new')
-        const { data, error } = await supabase
-          .from('tool_alternatives')
-          .insert([{ ...newAlternative, tool_id: toolId }])
-          .select()
-          .single()
-
-        if (error) throw error
+        const data = await serverAddAlternative(toolId, newAlternative)
         setAlternatives([...alternatives, data])
       } catch (err) {
         console.error('Error adding alternative:', err)
@@ -102,21 +102,14 @@ export default function AlternativesRepeater({
     if (mode === 'edit' && updated[index].id) {
       try {
         setSaving(updated[index].id!)
-
         const updateData =
           field === 'alternative_name'
             ? {
-                alternative_name: value,
-                alternative_slug: updated[index].alternative_slug,
-              }
+              alternative_name: value,
+              alternative_slug: updated[index].alternative_slug,
+            }
             : { [field]: value }
-
-        const { error } = await supabase
-          .from('tool_alternatives')
-          .update(updateData)
-          .eq('id', updated[index].id)
-
-        if (error) throw error
+        await serverUpdateAlternative(updated[index].id!, updateData)
       } catch (err) {
         console.error('Error updating alternative:', err)
       } finally {
@@ -129,22 +122,11 @@ export default function AlternativesRepeater({
     const alternative = alternatives[index]
 
     if (mode === 'edit' && alternative.id) {
-      if (
-        !confirm(
-          'Are you sure you want to delete this alternative?'
-        )
-      )
-        return
+      if (!confirm('Are you sure you want to delete this alternative?')) return
 
       try {
         setSaving(alternative.id)
-        const { error } = await supabase
-          .from('tool_alternatives')
-          .delete()
-          .eq('id', alternative.id)
-
-        if (error) throw error
-
+        await serverDeleteAlternative(alternative.id)
         const updated = alternatives.filter((_, i) => i !== index)
         setAlternatives(updated)
         await reorderAlternatives(updated)
@@ -191,16 +173,9 @@ export default function AlternativesRepeater({
     orderedAlternatives: Alternative[]
   ) => {
     if (mode !== 'edit') return
-
     try {
-      const updates = orderedAlternatives.map((a, index) =>
-        supabase
-          .from('tool_alternatives')
-          .update({ sort_order: index })
-          .eq('id', a.id)
-      )
-
-      await Promise.all(updates)
+      const items = orderedAlternatives.filter((a) => a.id).map((a, index) => ({ id: a.id!, sort_order: index }))
+      await serverReorderAlternatives(items)
     } catch (err) {
       console.error('Error reordering alternatives:', err)
     }

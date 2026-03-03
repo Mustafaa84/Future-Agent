@@ -2,8 +2,7 @@
 
 import { createAdminClient } from '@/lib/supabase'
 import { revalidatePath } from 'next/cache'
-
-// DOMPurify is disabled temporarily to resolve JSDOM server crashes
+import { sanitizeHtml } from '@/lib/sanitize'
 
 interface BlogPostInsertData {
   slug: string
@@ -51,12 +50,7 @@ interface ActionResponse<T = unknown> {
   data?: T
 }
 
-// Helper: Sanitize HTML content before saving
-function sanitizeHtml(html: string): string {
-  if (!html) return ''
-  // Temporarily return raw HTML to avoid JSDOM crashes
-  return html
-}
+
 
 // Helper: Generate slug from title
 function generateSlug(title: string): string {

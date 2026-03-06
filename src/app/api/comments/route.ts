@@ -1,16 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase, createAdminClient } from '@/lib/supabase'
 import { applyRateLimit, RateLimitPresets, addRateLimitHeaders } from '@/lib/rate-limit'
-
-// Basic tag stripper since we are only allowing plain text (no tags)
-// This avoids heavy dependencies like jsdom which crash in the Vercel runtime
-function stripTags(html: string): string {
-  if (!html) return ''
-  return html
-    .replace(/<[^>]*>?/gm, '') // Remove HTML tags
-    .replace(/&[^;]+;/g, '')   // Remove HTML entities
-    .trim()
-}
+import { sanitizeText } from '@/lib/sanitize'
 interface CommentRequestBody {
   post_id?: string
   tool_id?: string
@@ -130,10 +121,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Sanitize all user inputs using the lightweight tag stripper
-    const sanitizedName = stripTags(body.author_name)
-    const sanitizedEmail = body.author_email ? stripTags(body.author_email) : null
-    const sanitizedContent = stripTags(body.content)
+    // Sanitize all user inputs to remove HTML tags and prevent XSS
+    const sanitizedName = sanitizeText(body.author_name)
+    const sanitizedEmail = body.author_email ? sanitizeText(body.author_email) : null
+    const sanitizedContent = sanitizeText(body.content)
 
     const insertData: any = {
       [idField]: idValue,

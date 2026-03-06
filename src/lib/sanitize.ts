@@ -1,14 +1,14 @@
 /**
  * HTML Sanitization Utility
  * 
- * Uses isomorphic-dompurify for server-side and client-side HTML sanitization.
+ * Uses sanitize-html for server-side HTML sanitization.
  * This replaces the disabled DOMPurify implementation that was causing JSDOM crashes.
  * 
- * isomorphic-dompurify works in both Node.js and browser environments without
- * requiring JSDOM, making it ideal for Next.js server-side operations.
+ * sanitize-html does NOT depend on JSDOM, making it fully compatible with
+ * Next.js server-side operations and Vercel deployments.
  */
 
-import DOMPurify from 'isomorphic-dompurify'
+import sanitize from 'sanitize-html'
 
 /**
  * Sanitize HTML content to prevent XSS attacks
@@ -20,60 +20,22 @@ import DOMPurify from 'isomorphic-dompurify'
 export function sanitizeHtml(html: string): string {
   if (!html) return ''
 
-  // Configure DOMPurify with a whitelist of allowed tags and attributes
-  const config = {
-    ALLOWED_TAGS: [
-      'p',
-      'br',
-      'strong',
-      'b',
-      'em',
-      'i',
-      'u',
-      'a',
-      'ul',
-      'ol',
-      'li',
-      'blockquote',
-      'code',
-      'pre',
-      'h1',
-      'h2',
-      'h3',
-      'h4',
-      'h5',
-      'h6',
-      'img',
-      'table',
-      'thead',
-      'tbody',
-      'tr',
-      'td',
-      'th',
-      'hr',
-      'div',
-      'span',
+  return sanitize(html, {
+    allowedTags: [
+      'p', 'br', 'strong', 'b', 'em', 'i', 'u',
+      'a', 'ul', 'ol', 'li', 'blockquote', 'code', 'pre',
+      'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+      'img', 'table', 'thead', 'tbody', 'tr', 'td', 'th',
+      'hr', 'div', 'span',
     ],
-    ALLOWED_ATTR: [
-      'href',
-      'title',
-      'target',
-      'rel',
-      'src',
-      'alt',
-      'width',
-      'height',
-      'class',
-      'id',
-    ],
-    ALLOW_DATA_ATTR: false,
-    FORCE_BODY: false,
-    RETURN_DOM: false,
-    RETURN_DOM_FRAGMENT: false,
-    RETURN_DOM_IMPORT: false,
-  }
-
-  return DOMPurify.sanitize(html, config)
+    allowedAttributes: {
+      'a': ['href', 'title', 'target', 'rel'],
+      'img': ['src', 'alt', 'width', 'height'],
+      '*': ['class', 'id'],
+    },
+    allowedSchemes: ['http', 'https', 'mailto'],
+    disallowedTagsMode: 'discard',
+  })
 }
 
 /**
@@ -86,10 +48,9 @@ export function sanitizeHtml(html: string): string {
 export function sanitizeText(text: string): string {
   if (!text) return ''
 
-  // Remove all HTML tags and entities
-  return DOMPurify.sanitize(text, {
-    ALLOWED_TAGS: [],
-    ALLOWED_ATTR: [],
+  return sanitize(text, {
+    allowedTags: [],
+    allowedAttributes: {},
   })
 }
 

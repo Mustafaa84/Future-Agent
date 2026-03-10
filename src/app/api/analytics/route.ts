@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { createHash } from 'crypto';
+import { applyRateLimit, RateLimitPresets, addRateLimitHeaders } from '@/lib/rate-limit';
 
 /**
  * Hash IP address for privacy compliance (GDPR)
@@ -13,6 +14,12 @@ function hashIP(ip: string): string {
 
 export async function POST(request: NextRequest) {
     try {
+        // ✅ SECURITY: Apply rate limiting - 100 requests per minute
+        const rateLimitResponse = applyRateLimit(request, RateLimitPresets.ANALYTICS);
+        if (rateLimitResponse) {
+            return rateLimitResponse;
+        }
+
         const { path, referrer } = await request.json();
         const userAgent = request.headers.get('user-agent');
 

@@ -103,15 +103,24 @@ export default function ToolForm({ mode, toolId }: ToolFormProps) {
       starting_price: (formData.get('starting_price') as string) || null,
       free_trial: formData.get('free_trial') === 'on',
 
-      // Status
-      published: formData.get('published') === 'on',
+      // Status — auto-set published=true when a schedule date is provided
+      published: (() => {
+        const isChecked = formData.get('published') === 'on'
+        const dateValue = formData.get('published_date') as string
+        // If a date is set (scheduling), always mark as published so it shows as "Scheduled"
+        if (dateValue) return true
+        return isChecked
+      })(),
       published_date: (() => {
-        const isPublished = formData.get('published') === 'on'
+        const isChecked = formData.get('published') === 'on'
         const dateValue = formData.get('published_date') as string
 
-        if (!isPublished) return null
+        // If a date is explicitly set, use it (scheduling or manual date)
         if (dateValue) return new Date(dateValue).toISOString()
-        return new Date().toISOString()
+        // If published checkbox is on but no date, publish immediately
+        if (isChecked) return new Date().toISOString()
+        // Draft — no date
+        return null
       })(),
       featured: formData.get('featured') === 'on',
 

@@ -23,6 +23,18 @@ interface GeneratedContent {
 
 export async function POST(request: NextRequest) {
   try {
+    // ✅ SECURITY: Verify admin is authenticated before allowing AI generation
+    const { createServerClient } = await import('@/lib/supabase')
+    const supabase = createServerClient()
+    const { data: { session }, error: authError } = await supabase.auth.getSession()
+
+    if (authError || !session || !session.user) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized: Admin authentication required' },
+        { status: 401 }
+      )
+    }
+
     const contentType = request.headers.get('content-type') || ''
     const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY
 

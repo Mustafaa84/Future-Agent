@@ -25,7 +25,7 @@ export async function fetchPublishedTools() {
     return await fetchWithRetry(
         async () => await supabase
             .from('ai_tools')
-            .select('*')
+            .select('id, name, slug, logo, tagline, description, category, rating, review_count, pricing_model, starting_price, free_trial, featured, published_date, tags, meta_title, meta_description')
             .eq('published', true)
             .lte('published_date', new Date().toISOString())
             .order('published_date', { ascending: false })
@@ -93,7 +93,8 @@ export async function fetchComparisonPosts() {
             .select('title, slug')
             .eq('published', true)
             .ilike('slug', '%-vs-%')
-            .order('published_date', { ascending: false }),
+            .order('published_date', { ascending: false })
+            .limit(10),
         []
     )
 }

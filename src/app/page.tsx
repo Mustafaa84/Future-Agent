@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import Image from 'next/image'
 
-export const dynamic = 'force-dynamic'
+export const revalidate = 60 // ISR: regenerate every 60 seconds
 
 import JsonLd from '@/components/SEO/JsonLd'
 import { organizationSchema, websiteSchema } from '@/lib/seo/schemas'

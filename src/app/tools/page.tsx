@@ -1,7 +1,7 @@
 import { fetchPublishedTools, fetchCategories } from '@/lib/data-fetching'
 import ToolsClient from './ToolsClient'
 
-export const dynamic = 'force-dynamic'
+export const revalidate = 60 // ISR: regenerate every 60 seconds
 
 export const metadata = {
   title: 'Best AI Agents & Autonomous Software Directory | Future Agent',

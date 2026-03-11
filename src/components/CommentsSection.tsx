@@ -63,6 +63,7 @@ export default function CommentsSection({
           author_name: formData.author_name,
           author_email: formData.author_email,
           content: formData.comment_text,
+          rating: formData.rating,
         }),
       })
 

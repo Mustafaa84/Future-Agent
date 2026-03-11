@@ -17,6 +17,7 @@ interface CommentRequestBody {
   author_name: string
   author_email?: string
   content: string
+  rating?: number
 }
 
 // GET - Fetch comments for a post or tool
@@ -145,7 +146,7 @@ export async function POST(request: NextRequest) {
     };
 
     // Rating is standard for both now based on schema check
-    insertData.rating = 5;
+    insertData.rating = body.rating !== undefined ? body.rating : 5;
 
     const { data, error } = await adminAuthClient
       .from(tableName)

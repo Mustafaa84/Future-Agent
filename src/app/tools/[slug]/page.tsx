@@ -238,7 +238,7 @@ export default async function ToolPage({ params }: PageProps) {
   }
 
   const siteUrl =
-    process.env.NEXT_PUBLIC_SITE_URL || 'https://futureagent.com'
+    process.env.NEXT_PUBLIC_SITE_URL || 'https://futureagent.net'
   const toolUrl = `${siteUrl}/tools/${slug}`
 
   /* Breadcrumb Schema handled by Breadcrumbs component now */

@@ -30,7 +30,7 @@ export default async function AboutPage() {
             name: 'Future Agent',
             logo: {
                 '@type': 'ImageObject',
-                url: 'https://futureagent.com/logo.png'
+                url: 'https://futureagent.net/logo.png'
             }
         }
     }

@@ -2,7 +2,7 @@ import { MetadataRoute } from 'next'
 import { supabase } from '@/lib/supabase'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://futureagent.com'
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://futureagent.net'
 
   // Fetch LIVE published tools
   const { data: tools } = await supabase

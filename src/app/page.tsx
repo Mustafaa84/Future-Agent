@@ -37,11 +37,11 @@ export const metadata: Metadata = {
     title: 'Future Agent | Top AI Agents & Autonomous Workflows Directory',
     description:
       'Discover, compare, and implement the best autonomous AI agents for your business. From research to coding, find tools that work for you.',
-    url: process.env.NEXT_PUBLIC_SITE_URL || 'https://futureagent.com',
+    url: process.env.NEXT_PUBLIC_SITE_URL || 'https://futureagent.net',
     siteName: 'Future Agent',
     images: [
       {
-        url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://futureagent.com'}/og-image.jpg`,
+        url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://futureagent.net'}/og-image.jpg`,
         width: 1200,
         height: 630,
         alt: 'Future Agent - Best AI Tools Directory and Reviews',
@@ -55,10 +55,10 @@ export const metadata: Metadata = {
     title: 'Best AI Tools Directory 2025 - Future Agent',
     description:
       'Discover 500+ AI tools with expert reviews. Compare features, pricing, and find your perfect match.',
-    images: [`${process.env.NEXT_PUBLIC_SITE_URL || 'https://futureagent.com'}/og-image.jpg`],
+    images: [`${process.env.NEXT_PUBLIC_SITE_URL || 'https://futureagent.net'}/og-image.jpg`],
   },
   alternates: {
-    canonical: process.env.NEXT_PUBLIC_SITE_URL || 'https://futureagent.com',
+    canonical: process.env.NEXT_PUBLIC_SITE_URL || 'https://futureagent.net',
   },
   robots: {
     index: true,

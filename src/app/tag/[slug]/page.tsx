@@ -34,7 +34,7 @@ export async function generateMetadata({
     }
   }
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://futureagent.com'
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://futureagent.net'
 
   return {
     title: `${tag.name} AI Tools 2025 | Future Agent`,

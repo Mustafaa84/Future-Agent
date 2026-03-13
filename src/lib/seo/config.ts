@@ -1,6 +1,6 @@
 export const seoConfig = {
   siteName: 'Future Agent',
-  siteUrl: process.env.NEXT_PUBLIC_SITE_URL || 'https://futureagent.com',
+  siteUrl: process.env.NEXT_PUBLIC_SITE_URL || 'https://futureagent.net',
   siteDescription: 'Discover and compare the best AI tools for your business',
   defaultOgImage: '/images/og-default.jpg',
   twitterHandle: '@futureagent',
@@ -15,7 +15,7 @@ export const seoConfig = {
 export const seoTemplates = {
   tool: {
     titleTemplate: (toolName: string) => 
-      `${toolName} Review 2025 - Features, Pricing & Alternatives | Future Agent`,
+      `${toolName} Review 2026 - Features, Pricing & Alternatives | Future Agent`,
     descriptionTemplate: (toolName: string, shortDesc: string) =>
       `Comprehensive review of ${toolName}. ${shortDesc} Compare features, pricing, pros and cons, and discover the best alternatives.`,
   },
@@ -26,7 +26,7 @@ export const seoTemplates = {
   },
   category: {
     titleTemplate: (categoryName: string) => 
-      `Best ${categoryName} AI Tools 2025 | Future Agent`,
+      `Best ${categoryName} AI Tools 2026 | Future Agent`,
     descriptionTemplate: (categoryName: string) =>
       `Discover the best ${categoryName} AI tools. Compare features, pricing, and reviews to find the perfect solution for your needs.`,
   },

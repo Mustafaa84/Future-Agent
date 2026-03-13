@@ -22,7 +22,7 @@ export function generateMetadata({
   keywords,
   noindex = false
 }: MetaTagsProps) {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://futureagent.com';
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://futureagent.net';
   const fullCanonical = canonical || siteUrl;
   const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}`;
   const fullTitle = title.includes('Future Agent') ? title : `${title} | Future Agent`;

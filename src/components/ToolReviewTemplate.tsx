@@ -58,7 +58,7 @@ interface ToolReviewProps {
 }
 
 export default function ToolReviewTemplate({ tool, slug }: ToolReviewProps) {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://futureagent.com'
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://futureagent.net'
   const toolUrl = `${siteUrl}/tools/${slug}`
 
   // Generate schemas

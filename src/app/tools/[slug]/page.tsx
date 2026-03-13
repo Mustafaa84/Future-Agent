@@ -379,45 +379,180 @@ export default async function ToolPage({ params }: PageProps) {
 
 
 
-        {/* In-Depth Review Section */}
+        {/* ── At a Glance Strip ─────────────────────────────────────── */}
+        {(pricingPlans && pricingPlans.length > 0) && (() => {
+          const firstPaid = (pricingPlans as PricingPlanRecord[]).find(p => p.price !== null && p.price > 0)
+          const hasFree = (pricingPlans as PricingPlanRecord[]).some(p => p.price === 0 || p.price === null)
+          const startingPrice = firstPaid ? `$${firstPaid.price}/${firstPaid.period}` : null
+          const glanceItems = [
+            { icon: '💰', label: 'Starting Price', value: startingPrice || 'Free' },
+            { icon: '🆓', label: 'Free Tier', value: hasFree ? 'Yes — available' : 'No free plan' },
+            { icon: '📂', label: 'Category', value: tool.category || '—' },
+            { icon: '📅', label: 'Last Reviewed', value: tool.published_date ? new Date(tool.published_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'Recent' },
+          ]
+          return (
+            <section className="px-4 py-6 border-b border-slate-800/50 bg-slate-950/40">
+              <div className="mx-auto max-w-5xl">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {glanceItems.map((item, i) => (
+                    <div key={i} className="flex items-center gap-3 px-4 py-3 rounded-xl bg-slate-900/50 border border-slate-800/60">
+                      <span className="text-2xl flex-shrink-0">{item.icon}</span>
+                      <div className="min-w-0">
+                        <div className="text-[10px] font-black uppercase tracking-widest text-slate-500">{item.label}</div>
+                        <div className="text-sm font-bold text-white truncate">{item.value}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </section>
+          )
+        })()}
+
+        {/* ── In-Depth Review Section ────────────────────────────────── */}
         {(tool.review_intro || (reviewSections && reviewSections.length > 0)) && (
           <section className="px-4 py-16">
             <div className="mx-auto max-w-4xl">
-              <h2 className="mb-6 text-3xl font-bold text-white">
-                Our {tool.name} Review
-              </h2>
-              <div className="prose max-w-none prose-invert">
-                {tool.review_intro && (
-                  <p className="mb-6 leading-relaxed text-slate-300">
-                    {tool.review_intro}
-                  </p>
-                )}
-                {reviewSections &&
-                  reviewSections.map((section) => (
-                    <div key={section.id} className="mb-8">
-                      <h3 className="mb-4 text-2xl font-bold text-white">
-                        {section.title}
-                      </h3>
 
-                      {/* Section Image */}
-                      {section.image_url && (
-                        <div className="w-full mb-6 flex justify-center">
-                          <Image
-                            src={section.image_url}
-                            alt={section.title}
-                            width={1024}
-                            height={576}
-                            className="max-w-3xl w-full h-auto rounded-xl shadow-xl object-contain"
-                          />
-                        </div>
-                      )}
-
-                      <p className="leading-relaxed text-slate-300">
-                        {section.content}
-                      </p>
-                    </div>
-                  ))}
+              {/* Section header */}
+              <div className="flex items-center gap-3 mb-10">
+                <div className="flex-shrink-0 w-1 h-10 rounded-full bg-gradient-to-b from-cyan-400 to-indigo-500" />
+                <h2 className="text-3xl font-black text-white italic tracking-tight">
+                  Our {tool.name} Review
+                </h2>
               </div>
+
+              {/* Expert Verdict Card */}
+              {tool.review_intro && (
+                <div className="relative mb-10 rounded-2xl border border-cyan-500/20 bg-gradient-to-br from-slate-900/80 via-slate-900 to-indigo-950/40 p-8 overflow-hidden">
+                  <div className="absolute top-0 right-0 w-48 h-48 bg-cyan-500/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl pointer-events-none" />
+                  <div className="relative z-10">
+                    <div className="flex items-start gap-6">
+                      <div className="hidden sm:flex flex-col items-center gap-1 flex-shrink-0">
+                        <div className="w-14 h-14 rounded-2xl bg-slate-950 border border-cyan-500/30 flex items-center justify-center">
+                          <span className="text-2xl font-black text-cyan-400 italic">{tool.rating ?? '—'}</span>
+                        </div>
+                        <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">Score</span>
+                        <div className="flex gap-0.5 mt-1">
+                          {[1,2,3,4,5].map(s => (
+                            <svg key={s} className={`w-2.5 h-2.5 ${s <= Math.round(tool.rating ?? 0) ? 'text-yellow-400' : 'text-slate-700'}`} fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                            </svg>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-3">
+                          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-400">Expert Verdict</span>
+                          <div className="flex-1 h-px bg-cyan-500/20" />
+                        </div>
+                        <p className="text-base leading-relaxed text-slate-300 font-medium">
+                          {tool.review_intro}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Table of Contents */}
+              {reviewSections && reviewSections.length > 1 && (
+                <div className="mb-10 p-5 rounded-xl bg-slate-900/40 border border-slate-800/60">
+                  <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">In this review</div>
+                  <div className="flex flex-wrap gap-2">
+                    {reviewSections.map((section, i) => (
+                      <a
+                        key={section.id}
+                        href={`#review-section-${i}`}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800/60 border border-slate-700/40 text-xs font-bold text-slate-400 hover:text-cyan-400 hover:border-cyan-500/40 hover:bg-slate-800 transition-all"
+                      >
+                        <span className="text-cyan-500/70 font-black">{String(i + 1).padStart(2, '0')}</span>
+                        {section.title}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Review Sections */}
+              {reviewSections && reviewSections.length > 0 && (
+                <div className="space-y-0">
+                  {reviewSections.map((section, i) => {
+                    const sectionIcons = ['🔍','⚙️','💡','📊','🚀','🎯','🔧','💎','📈','🛡️']
+                    const icon = sectionIcons[i % sectionIcons.length]
+                    const isKeyInsightSlot = i > 0 && i % 2 === 0
+
+                    return (
+                      <div key={section.id}>
+                        {/* Key Insight callout before every 3rd section */}
+                        {isKeyInsightSlot && i === 2 && pros && (pros as ProRecord[]).length > 0 && (
+                          <div className="my-8 flex gap-4 p-5 rounded-xl border border-emerald-500/20 bg-emerald-500/5">
+                            <span className="text-2xl flex-shrink-0">✅</span>
+                            <div>
+                              <div className="text-[10px] font-black uppercase tracking-widest text-emerald-400 mb-1">Top Strength</div>
+                              <p className="text-sm font-medium text-slate-300">{(pros as ProRecord[])[0].text}</p>
+                            </div>
+                          </div>
+                        )}
+                        {isKeyInsightSlot && i === 4 && cons && (cons as ConRecord[]).length > 0 && (
+                          <div className="my-8 flex gap-4 p-5 rounded-xl border border-amber-500/20 bg-amber-500/5">
+                            <span className="text-2xl flex-shrink-0">⚠️</span>
+                            <div>
+                              <div className="text-[10px] font-black uppercase tracking-widest text-amber-400 mb-1">Key Limitation</div>
+                              <p className="text-sm font-medium text-slate-300">{(cons as ConRecord[])[0].text}</p>
+                            </div>
+                          </div>
+                        )}
+
+                        <div
+                          id={`review-section-${i}`}
+                          className={`relative pl-6 pb-10 ${i < reviewSections.length - 1 ? 'border-l border-slate-800/60' : ''}`}
+                        >
+                          {/* Timeline dot */}
+                          <div className="absolute left-0 top-0 -translate-x-1/2 w-5 h-5 rounded-full bg-slate-950 border-2 border-slate-700 flex items-center justify-center">
+                            <div className="w-1.5 h-1.5 rounded-full bg-cyan-500" />
+                          </div>
+
+                          <div className="group rounded-2xl border border-slate-800/50 bg-slate-900/30 hover:bg-slate-900/60 hover:border-slate-700/60 transition-all duration-500 p-6 md:p-8">
+                            {/* Section header */}
+                            <div className="flex items-center gap-3 mb-5">
+                              <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-center text-lg">
+                                {icon}
+                              </div>
+                              <div className="flex-1">
+                                <span className="block text-[9px] font-black uppercase tracking-widest text-slate-600 mb-0.5">
+                                  Section {String(i + 1).padStart(2, '0')}
+                                </span>
+                                <h3 className="text-xl font-black text-white italic tracking-tight leading-tight">
+                                  {section.title}
+                                </h3>
+                              </div>
+                            </div>
+
+                            {/* Section Image */}
+                            {section.image_url && (
+                              <div className="w-full mb-6 rounded-xl overflow-hidden border border-slate-800">
+                                <Image
+                                  src={section.image_url}
+                                  alt={section.title}
+                                  width={1024}
+                                  height={576}
+                                  className="w-full h-auto object-contain"
+                                />
+                              </div>
+                            )}
+
+                            <p className="leading-relaxed text-slate-400 text-[15px] group-hover:text-slate-300 transition-colors">
+                              {section.content}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+
             </div>
           </section>
         )}

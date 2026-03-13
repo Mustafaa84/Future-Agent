@@ -1,11 +1,9 @@
 import { supabase, fetchWithRetry, withRetry } from '@/lib/supabase'
 
 // Resilient category fetching with cache-friendly sorting
-// Resilient category fetching with cache-friendly sorting
 export async function fetchCategories() {
     return await fetchWithRetry(
         async () => {
-            // console.log('Fetching categories...')
             const result = await supabase
                 .from('categories')
                 .select('*')
@@ -21,14 +19,16 @@ export async function fetchCategories() {
 }
 
 // Resilient tools fetching for directory
+// Uses `or` so tools with NULL published_date are always shown when published=true
 export async function fetchPublishedTools() {
+    const now = new Date().toISOString()
     return await fetchWithRetry(
         async () => await supabase
             .from('ai_tools')
             .select('id, name, slug, logo, tagline, description, category, rating, review_count, pricing_model, starting_price, free_trial, featured, published_date, tags, meta_title, meta_description')
             .eq('published', true)
-            .lte('published_date', new Date().toISOString())
-            .order('published_date', { ascending: false })
+            .or(`published_date.is.null,published_date.lte.${now}`)
+            .order('published_date', { ascending: false, nullsFirst: false })
             .order('rating', { ascending: false }),
         [] // Fallback
     )
@@ -74,12 +74,13 @@ export async function fetchFeaturedTools() {
 }
 
 export async function fetchLatestBlogPosts() {
+    const now = new Date().toISOString()
     return await fetchWithRetry(
         async () => await supabase
             .from('blog_posts')
             .select('id, slug, title, excerpt, featured_image, category, category_slug, reading_time, tags, published_date')
             .eq('published', true)
-            .lte('published_date', new Date().toISOString())
+            .or(`published_date.is.null,published_date.lte.${now}`)
             .order('created_at', { ascending: false })
             .limit(3),
         []

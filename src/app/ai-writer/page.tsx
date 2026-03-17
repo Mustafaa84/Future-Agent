@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 
-const N8N_WEBHOOK = 'https://future-agent.app.n8n.cloud/webhook/seo-blog-writer'
+const N8N_WEBHOOK = '/api/ai-writer'
 
 export default function AIWriterPage() {
   const [keyword, setKeyword] = useState('')

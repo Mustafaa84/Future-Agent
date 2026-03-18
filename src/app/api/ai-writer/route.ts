@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+export const maxDuration = 60 // 60 second timeout for Gemini calls
+
 const N8N_WEBHOOK = 'https://future-agent.app.n8n.cloud/webhook/seo-blog-writer'
 
 export async function POST(request: NextRequest) {

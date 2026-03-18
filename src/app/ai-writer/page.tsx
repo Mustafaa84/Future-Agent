@@ -55,11 +55,12 @@ export default function AIWriterPage() {
 
       if (!res.ok) throw new Error(`Webhook returned ${res.status}`)
       const data = await res.json()
+      if (data.error) throw new Error(data.error)
       setStage('✅ Done!')
       setResult(data)
     } catch (err: any) {
       clearInterval(interval)
-      setError('Something went wrong. Make sure the n8n workflow is published and the Gemini API key is set correctly.')
+      setError(`Error: ${err.message || 'Unknown error — check that the n8n workflow is published'}`)
     } finally {
       setLoading(false)
     }

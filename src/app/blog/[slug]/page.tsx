@@ -433,9 +433,10 @@ export default async function BlogPostPage({
                       [&>ol]:list-decimal [&>ol]:list-inside [&>ol]:mb-6 [&>ol]:space-y-2
 
 
-                      // Links
-                      [&>a]:text-cyan-400 [&>a]:underline [&>a]:hover:text-cyan-300
-                      [&>a]:transition-colors
+                      // Links — use [&_a] not [&>a] to target links inside paragraphs
+                      [&_a]:text-cyan-400 [&_a]:underline [&_a]:font-medium
+                      [&_a]:hover:text-cyan-300 [&_a]:transition-colors
+                      [&_a]:decoration-cyan-400/50 [&_a]:hover:decoration-cyan-300
 
 
                       // Strong text

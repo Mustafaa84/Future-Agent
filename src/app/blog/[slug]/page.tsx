@@ -1,11 +1,13 @@
 // src/app/blog/[slug]/page.tsx
 // REFINED WITH seoConfig + generateArticleSchema + Breadcrumb Schema
 
-export const dynamic = 'force-dynamic' // Always fetch fresh from DB — no caching
+export const dynamic = 'force-dynamic'
+export const fetchCache = 'force-no-store'
+export const revalidate = 0
 
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { supabase } from '@/lib/supabase'
+import { createServerClient } from '@/lib/supabase'
 import { notFound } from 'next/navigation'
 import { seoConfig, seoTemplates } from '@/lib/seo/config'
 import { generateArticleSchema, generateBreadcrumbSchema } from '@/lib/seo/schemas'
@@ -29,7 +31,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params
 
-  const { data: post } = await supabase
+  const { data: post } = await createServerClient()
     .from('blog_posts')
     .select('*')
     .eq('slug', slug)
@@ -111,7 +113,7 @@ export default async function BlogPostPage({
 
 
   // Fetch the current post
-  const { data: post } = await supabase
+  const { data: post } = await createServerClient()
     .from('blog_posts')
     .select('*')
     .eq('slug', slug)
@@ -149,7 +151,7 @@ export default async function BlogPostPage({
 
 
   // Fetch related posts with smart algorithm
-  const { data: allPublishedPosts } = await supabase
+  const { data: allPublishedPosts } = await createServerClient()
     .from('blog_posts')
     .select('*')
     .eq('published', true)
@@ -337,7 +339,7 @@ export default async function BlogPostPage({
                         const hasFilter = slugs.length > 0 || names.length > 0;
 
                         if (hasFilter) {
-                          const { data: latestTools } = await supabase
+                          const { data: latestTools } = await createServerClient()
                             .from('ai_tools')
                             .select('id, name, slug, logo, rating, website_url')
                             .or(`slug.in.(${slugs.join(',')}),name.in.(${names.map(n => `"${n}"`).join(',')})`);
@@ -353,11 +355,11 @@ export default async function BlogPostPage({
 
                                 // Fetch relations
                                 const [pros, cons, pricing, integrations, affiliateLink] = await Promise.all([
-                                  supabase.from('tool_pros').select('text').eq('tool_id', liveTool.id).order('sort_order', { ascending: true }),
-                                  supabase.from('tool_cons').select('text').eq('tool_id', liveTool.id).order('sort_order', { ascending: true }),
-                                  supabase.from('tool_pricing_plans').select('price_label, price, period').eq('tool_id', liveTool.id).order('is_popular', { ascending: false }).limit(1).maybeSingle(),
-                                  supabase.from('tool_integrations').select('integration_name').eq('tool_id', liveTool.id).order('sort_order', { ascending: true }),
-                                  supabase.from('affiliate_links').select('slug').eq('tool_id', liveTool.id).maybeSingle()
+                                  createServerClient().from('tool_pros').select('text').eq('tool_id', liveTool.id).order('sort_order', { ascending: true }),
+                                  createServerClient().from('tool_cons').select('text').eq('tool_id', liveTool.id).order('sort_order', { ascending: true }),
+                                  createServerClient().from('tool_pricing_plans').select('price_label, price, period').eq('tool_id', liveTool.id).order('is_popular', { ascending: false }).limit(1).maybeSingle(),
+                                  createServerClient().from('tool_integrations').select('integration_name').eq('tool_id', liveTool.id).order('sort_order', { ascending: true }),
+                                  createServerClient().from('affiliate_links').select('slug').eq('tool_id', liveTool.id).maybeSingle()
                                 ]);
 
                                 // CTA Logic: Affiliate Link > Website URL > Original Content

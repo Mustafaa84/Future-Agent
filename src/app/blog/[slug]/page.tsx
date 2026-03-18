@@ -1,6 +1,7 @@
 // src/app/blog/[slug]/page.tsx
 // REFINED WITH seoConfig + generateArticleSchema + Breadcrumb Schema
 
+export const dynamic = 'force-dynamic' // Always fetch fresh from DB — no caching
 
 import type { Metadata } from 'next'
 import Link from 'next/link'

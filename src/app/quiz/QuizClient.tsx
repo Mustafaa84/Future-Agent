@@ -319,8 +319,11 @@ export default function QuizClient({ tools }: QuizClientProps) {
                           </div>
                         )}
                         <div className="flex flex-col sm:flex-row sm:items-start gap-4">
-                          <div className="w-12 h-12 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-2xl flex-shrink-0">
-                            {rec.tool.logo || rec.tool.name.charAt(0)}
+                          <div className="w-12 h-12 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-2xl flex-shrink-0 overflow-hidden">
+                            {rec.tool.logo && (rec.tool.logo.startsWith('http') || rec.tool.logo.startsWith('/'))
+                              ? <img src={rec.tool.logo} alt={rec.tool.name} className="w-8 h-8 object-contain" />
+                              : <span>{rec.tool.logo || rec.tool.name.charAt(0)}</span>
+                            }
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex flex-wrap items-center gap-2 mb-1">
@@ -342,13 +345,13 @@ export default function QuizClient({ tools }: QuizClientProps) {
                                 ))}
                               </ul>
                             )}
+                            <Link
+                              href={`/tools/${rec.tool.slug}`}
+                              className="mt-4 inline-flex w-full sm:w-auto items-center justify-center px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-cyan-500 hover:border-cyan-500 text-white text-sm font-bold transition-all border border-slate-700"
+                            >
+                              Read Review →
+                            </Link>
                           </div>
-                          <Link
-                            href={`/tools/${rec.tool.slug}`}
-                            className="inline-flex items-center justify-center px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-cyan-500 hover:border-cyan-500 text-white text-sm font-bold transition-all border border-slate-700 flex-shrink-0"
-                          >
-                            Read Review →
-                          </Link>
                         </div>
                       </div>
                     ))}
@@ -365,10 +368,10 @@ export default function QuizClient({ tools }: QuizClientProps) {
                   <div className="mt-8 p-6 rounded-2xl bg-slate-800/40 border border-slate-700">
                     <h3 className="text-white font-semibold mb-1">📬 Get your results by email</h3>
                     <p className="text-slate-400 text-sm mb-4">We will also notify you as we add new tools that match your profile. No spam, unsubscribe anytime.</p>
-                    <form onSubmit={handleEmailSubmit} className="flex gap-3">
+                    <form onSubmit={handleEmailSubmit} className="flex flex-col sm:flex-row gap-3">
                       <input type="email" placeholder="your@email.com" value={email} onChange={e => setEmail(e.target.value)}
                         className="flex-1 px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 focus:border-cyan-500 text-white outline-none transition text-sm placeholder-slate-600" required />
-                      <button type="submit" className="px-5 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-bold transition">Send</button>
+                      <button type="submit" className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-bold transition">Send</button>
                     </form>
                   </div>
                 )}

@@ -1,7 +1,7 @@
 import { supabase } from '@/lib/supabase'
 import { notFound } from 'next/navigation'
 
-export const revalidate = 3600 // ISR: cache for 1 hour
+export const revalidate = 300 // ISR: cache for 5 minutes, refresh in background
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import Image from 'next/image'

@@ -196,14 +196,16 @@ export async function getPublishedToolsForQuiz() {
       rating,
       review_count,
       logo,
+      tagline,
       published,
       tags,
       pricing_model,
-      starting_price
+      starting_price,
+      free_trial
     `,
     )
     .eq('published', true)
-    .order('created_at', { ascending: false })
+    .order('rating', { ascending: false })
 
   if (error || !data) {
     console.error('Error loading published tools for quiz:', error)

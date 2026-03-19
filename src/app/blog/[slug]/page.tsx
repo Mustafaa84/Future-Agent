@@ -1,7 +1,7 @@
 // src/app/blog/[slug]/page.tsx
 // REFINED WITH seoConfig + generateArticleSchema + Breadcrumb Schema
 
-export const revalidate = 300 // ISR: cache for 5 minutes, refresh in background
+export const revalidate = 3600 // ISR: cache for 1 hour — content changes infrequently
 
 import type { Metadata } from 'next'
 import Link from 'next/link'

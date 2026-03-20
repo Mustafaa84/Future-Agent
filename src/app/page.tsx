@@ -8,7 +8,6 @@ import JsonLd from '@/components/SEO/JsonLd'
 import { organizationSchema, websiteSchema } from '@/lib/seo/schemas'
 import EmailOptInClient from '@/components/EmailOptInClient'
 import { getCategoryIcon } from '@/lib/icons'
-import { getCategoryImage } from '@/lib/category-assets'
 import ErrorBoundary from '@/components/ErrorBoundary'
 import BlogCard from '@/components/blog/BlogCard'
 import {
@@ -19,24 +18,25 @@ import {
 } from '@/lib/data-fetching'
 
 export const metadata: Metadata = {
-  title: 'Future Agent | Agentic AI Specialists & Autonomous Workflow Research',
+  title: 'Future Agent | AI Agents, Automation & Code Tools — Expert Reviews',
   description:
-    'Master the era of autonomous agents. We provide data-backed research and blueprints for high-impact AI agents and automated workflows.',
+    'Expert reviews and comparisons of AI agents, automation tools, and AI coding assistants. Find the right tool for your workflow — from n8n to Cursor to ChatGPT.',
   keywords: [
-    'AI tools',
-    'best AI tools 2025',
-    'AI software reviews',
-    'AI content creation tools',
+    'AI agents',
+    'AI automation tools',
+    'best AI tools',
+    'AI tool reviews',
     'AI tool directory',
     'compare AI tools',
-    'AI automation software',
-    'top AI tools',
-    'AI tool finder',
+    'n8n review',
+    'Cursor AI review',
+    'AI coding tools',
+    'workflow automation',
   ],
   openGraph: {
-    title: 'Future Agent | Top AI Agents & Autonomous Workflows Directory',
+    title: 'Future Agent | AI Agents, Automation & Code Tools — Expert Reviews',
     description:
-      'Discover, compare, and implement the best autonomous AI agents for your business. From research to coding, find tools that work for you.',
+      'Expert reviews and honest comparisons of AI agents, automation tools, and coding assistants. Find the right tool for your workflow.',
     url: process.env.NEXT_PUBLIC_SITE_URL || 'https://futureagent.net',
     siteName: 'Future Agent',
     images: [
@@ -44,7 +44,7 @@ export const metadata: Metadata = {
         url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://futureagent.net'}/og-image.jpg`,
         width: 1200,
         height: 630,
-        alt: 'Future Agent - Best AI Tools Directory and Reviews',
+        alt: 'Future Agent - AI Agents and Automation Tools Directory',
       },
     ],
     locale: 'en_US',
@@ -52,9 +52,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Best AI Tools Directory 2025 - Future Agent',
+    title: 'Future Agent | Best AI Agents & Automation Tools',
     description:
-      'Discover 500+ AI tools with expert reviews. Compare features, pricing, and find your perfect match.',
+      'Expert reviews of AI agents, automation tools, and coding assistants. Compare n8n vs Zapier, Cursor vs Copilot, ChatGPT vs Claude and more.',
     images: [`${process.env.NEXT_PUBLIC_SITE_URL || 'https://futureagent.net'}/og-image.jpg`],
   },
   alternates: {
@@ -87,10 +87,10 @@ async function getComparisonData() {
 
   // Fallback data if no dynamic posts match
   const fallbackPosts = [
-    { a: "Jasper", b: "Copy.ai", s: "jasper-vs-copy-ai", color: colors[0] },
-    { a: "Midjourney", b: "DALL-E 3", s: "midjourney-vs-dalle-3", color: colors[1] },
-    { a: "Claude", b: "ChatGPT", s: "claude-vs-chatgpt", color: colors[2] },
-    { a: "Perplexity", b: "Search", s: "perplexity-vs-google-search", color: colors[3] },
+    { a: "ChatGPT", b: "Claude", s: "chatgpt-vs-claude-3-5-comparison", color: colors[0] },
+    { a: "n8n", b: "Zapier", s: "n8n-vs-zapier", color: colors[1] },
+    { a: "Cursor", b: "Copilot", s: "github-copilot-vs-cursor-the-ultimate-code-editor-showdown", color: colors[2] },
+    { a: "Bolt.new", b: "Lovable", s: "bolt-new-vs-lovable", color: colors[3] },
   ]
 
   if (!data || data.length === 0) return fallbackPosts
@@ -132,7 +132,6 @@ export default async function Home() {
       <JsonLd data={organizationSchema} />
       <JsonLd data={websiteSchema} />
 
-      {/* FAQ Schema for Rich Snippets */}
       <JsonLd
         data={{
           '@context': 'https://schema.org',
@@ -143,39 +142,39 @@ export default async function Home() {
               name: 'What are autonomous AI agents?',
               acceptedAnswer: {
                 '@type': 'Answer',
-                text: 'Autonomous AI agents are software systems capable of performing complex tasks with minimal human intervention. Unlike standard AI chatbots that just respond to prompts, agents can plan, execute multi-step workflows, and interact with other tools to achieve specific goals.',
+                text: 'Autonomous AI agents are software systems that can perform complex, multi-step tasks with minimal human intervention. Unlike standard chatbots that just respond to prompts, agents can plan, execute workflows, use external tools, and take real actions to achieve a goal — without needing a human to guide each step.',
               },
             },
             {
               '@type': 'Question',
-              name: 'What are the best AI agents for coding in 2026?',
+              name: 'What are the best AI coding tools in 2026?',
               acceptedAnswer: {
                 '@type': 'Answer',
-                text: 'The best AI coding agents currently include Cursor for an integrated AI-first IDE experience, GitHub Copilot for powerful autocomplete and chat, and Devin or OpenDevin for autonomous software engineering tasks.',
+                text: 'The top AI coding tools in 2026 are Cursor (an AI-first code editor with deep codebase understanding), GitHub Copilot (best for autocomplete and PR review inside existing workflows), Lovable and Bolt.new (for building full apps from a prompt without local setup). Each serves different levels of technical expertise.',
               },
             },
             {
               '@type': 'Question',
-              name: 'Can AI agents automate my business workflows?',
+              name: 'What is the best automation tool for small businesses?',
               acceptedAnswer: {
                 '@type': 'Answer',
-                text: 'Yes, platforms like Zapier Central, CrewAI, and Microsoft Autogen allow you to build custom agents that connect to your business data and handle repetitive tasks like lead qualification, research, and data entry automatically.',
+                text: 'For non-technical teams, Zapier is the easiest starting point with 8,000+ app integrations. For businesses wanting better value at higher volume, Make.com offers roughly 13x more operations for the same price. For technical teams that want unlimited automations and AI agent workflows, n8n is the most powerful option — and completely free when self-hosted.',
               },
             },
             {
               '@type': 'Question',
-              name: 'Are AI agents more expensive than standard chatbots?',
+              name: 'Is n8n better than Zapier?',
               acceptedAnswer: {
                 '@type': 'Answer',
-                text: 'While basic chatbots are often cheaper, AI agents provide higher ROI by automating labor. ROI is typically seen through time savings—where an agent can do in minutes what a human would take hours to coordinate.',
+                text: 'n8n is better than Zapier for technical teams, high-volume workflows, and AI-powered automation — especially since n8n is free when self-hosted with no execution limits. Zapier is better for non-technical users who need a wide range of native integrations and the fastest possible setup time.',
               },
             },
             {
               '@type': 'Question',
-              name: 'How do I choose the right AI agent for my needs?',
+              name: 'How do I choose the right AI tool for my needs?',
               acceptedAnswer: {
                 '@type': 'Answer',
-                text: 'Focus on the specific task you want to automate. Consider the tools the agent needs to integrate with, your technical expertise, and whether you need a ready-made solution or a customizable framework. Use our AI Agent Finder Quiz for a personalized recommendation.',
+                text: 'Start by identifying the specific task you want to automate or improve. Match the tool to your technical level — non-technical users should start with Zapier or ChatGPT, while developers get more value from Cursor or n8n. Use our AI Tool Finder Quiz for a personalised recommendation based on your goals, budget, and experience level.',
               },
             },
           ],
@@ -199,7 +198,7 @@ export default async function Home() {
                   <span className="absolute inline-flex h-2 w-2 animate-ping rounded-full bg-cyan-400 opacity-75"></span>
                   <span className="relative inline-flex h-2 w-2 rounded-full bg-cyan-400"></span>
                 </span>
-                Built for creators, marketers, and founders who rely on AI every day
+                Expert reviews for developers, founders, and teams choosing AI tools
               </div>
 
               {/* Headline */}
@@ -238,46 +237,22 @@ export default async function Home() {
               {/* Social proof stats */}
               <div className="flex flex-wrap items-center justify-center gap-8 text-sm text-slate-400">
                 <div className="flex items-center gap-2">
-                  <svg
-                    className="w-5 h-5 text-yellow-400"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
+                  <svg className="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                   </svg>
-                  <span>Independent Reviews</span>
+                  <span>13 Expert-Tested Reviews</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <svg
-                    className="w-5 h-5 text-blue-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M13 10V3L4 14h7v7l9-11h-7z"
-                    />
+                  <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                   </svg>
-                  <span>Real-World Insights</span>
+                  <span>6 Head-to-Head Comparisons</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <svg
-                    className="w-5 h-5 text-green-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                    />
+                  <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  <span>Weekly Updates</span>
+                  <span>Updated Weekly</span>
                 </div>
               </div>
             </div>
@@ -418,62 +393,7 @@ export default async function Home() {
           </section>
         </ErrorBoundary>
 
-        {/* INDUSTRY RESEARCH HUBS */}
-        <section className="py-24 px-4 relative overflow-hidden">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-cyan-500/5 rounded-full blur-[120px] pointer-events-none" />
 
-          <div className="mx-auto max-w-6xl relative">
-            <div className="flex flex-col items-center text-center mb-16">
-              <div className="max-w-3xl">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-[10px] font-bold uppercase tracking-widest mb-4 mx-auto">
-                  Strategic Framework
-                </div>
-                <h2 className="text-4xl md:text-5xl font-black text-white italic tracking-tight">
-                  Industry <span className="bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent italic">Research Hubs</span>.
-                </h2>
-                <p className="mt-4 text-slate-400 text-lg leading-relaxed font-medium max-w-2xl mx-auto">
-                  We categorize the agentic revolution into core execution pillars. Dive deep into the data, tools, and workflows redefining your industry.
-                </p>
-                <Link href="/tools" className="mt-6 text-cyan-400 font-bold hover:text-cyan-300 transition-colors flex items-center justify-center gap-2 group">
-                  Browse all categories <span className="group-hover:translate-x-1 transition-transform">→</span>
-                </Link>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6 pb-12">
-              {categories.map((cat, idx) => (
-                <Link
-                  key={cat.slug}
-                  href={`/tools/category/${cat.slug}`}
-                  className={`group relative h-[380px] md:h-[420px] rounded-[2rem] overflow-hidden border border-slate-800/50 hover:border-cyan-500/50 transition-all duration-700 shadow-2xl ${idx % 2 === 1 ? 'lg:translate-y-10' : ''
-                    }`}
-                >
-                  {/* Background Image */}
-                  <Image
-                    src={getCategoryImage(cat.slug, (cat as any).image_url)}
-                    alt={cat.name}
-                    fill
-                    className="object-cover opacity-40 group-hover:opacity-60 group-hover:scale-110 transition-all duration-1000"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent transition-opacity group-hover:opacity-60" />
-
-                  {/* Content Overlay */}
-                  <div className="absolute inset-0 p-6 flex flex-col justify-end">
-                    <h3 className="text-white font-black text-xl md:text-2xl tracking-tight mb-3 transform group-hover:-translate-y-1 transition-transform duration-500">
-                      {cat.name}
-                    </h3>
-                    <p className="text-slate-400 text-[10px] md:text-xs leading-relaxed group-hover:text-slate-100 transition-colors duration-500 line-clamp-2">
-                      {cat.description || `Specialized research reporting and tool analysis for ${cat.name.toLowerCase()} vertically.`}
-                    </p>
-                    <div className="mt-6 flex items-center gap-2 text-cyan-400 text-[9px] font-black uppercase tracking-[0.2em] opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all duration-500 delay-100">
-                      Deep Dive <span>→</span>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </section>
 
         <section className="px-4 py-20 relative">
           <div className="mx-auto max-w-6xl">

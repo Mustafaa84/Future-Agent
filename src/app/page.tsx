@@ -210,7 +210,7 @@ export default async function Home() {
               </h1>
 
               {/* Sub-headline */}
-              <p className="mb-10 max-w-2xl text-lg md:text-xl text-slate-300 leading-relaxed font-medium">
+              <p className="mb-10 max-w-2xl text-base md:text-lg text-slate-300 leading-relaxed font-medium">
                 The definitive resource for autonomous AI agents, multi-step workflows, and task execution tools. Stop chatting, start automating.
               </p>
 

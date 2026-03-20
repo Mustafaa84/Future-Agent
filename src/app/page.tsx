@@ -198,7 +198,7 @@ export default async function Home() {
                   <span className="absolute inline-flex h-2 w-2 animate-ping rounded-full bg-cyan-400 opacity-75"></span>
                   <span className="relative inline-flex h-2 w-2 rounded-full bg-cyan-400"></span>
                 </span>
-                Expert reviews for developers, founders, and teams choosing AI tools
+                Cut through the AI hype. Find tools that actually work.
               </div>
 
               {/* Headline */}

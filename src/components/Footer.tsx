@@ -82,7 +82,7 @@ export default function Footer() {
 
           {/* Tagline */}
           <p className="text-sm text-slate-400 text-center mb-6 max-w-xs">
-            Your trusted AI tools directory and insights hub.
+            Expert reviews of AI agents, automation tools, and coding assistants.
           </p>
 
           {/* Social Icons - Centered */}

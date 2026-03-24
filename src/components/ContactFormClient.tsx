@@ -210,10 +210,10 @@ export default function ContactFormClient() {
             Oops! Something went wrong. Please try again or email us directly
             at{' '}
             <a
-              href="mailto:hello@futureagent.net"
+              href="mailto:info@futureagent.net"
               className="text-cyan-400 hover:text-cyan-300"
             >
-              hello@futureagent.net
+              info@futureagent.net
             </a>
           </p>
         </div>

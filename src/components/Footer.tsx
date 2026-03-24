@@ -287,7 +287,7 @@ export default function Footer() {
               </li>
               <li>
                 <a
-                  href="mailto:hello@future-agent.com"
+                  href="mailto:info@futureagent.net"
                   className="text-slate-400 hover:text-cyan-400 transition"
                 >
                   Email Support

@@ -247,10 +247,10 @@ export default function PrivacyPolicyPage() {
             <p className="text-slate-300 mb-6">
               To exercise these rights, please contact us at{' '}
               <a
-                href="mailto:hello@futureagent.net"
+                href="mailto:info@futureagent.net"
                 className="text-cyan-400 hover:text-cyan-300"
               >
-                hello@futureagent.net
+                info@futureagent.net
               </a>
               .
             </p>
@@ -303,10 +303,10 @@ export default function PrivacyPolicyPage() {
               <li>
                 <strong>Email:</strong>{' '}
                 <a
-                  href="mailto:hello@futureagent.net"
+                  href="mailto:info@futureagent.net"
                   className="text-cyan-400 hover:text-cyan-300"
                 >
-                  hello@futureagent.net
+                  info@futureagent.net
                 </a>
               </li>
               <li>

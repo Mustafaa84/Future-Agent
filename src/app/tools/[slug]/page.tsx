@@ -412,7 +412,7 @@ export default async function ToolPage({ params }: PageProps) {
         {/* ── In-Depth Review Section ────────────────────────────────── */}
         {(tool.review_intro || (reviewSections && reviewSections.length > 0)) && (
           <section className="px-4 py-16">
-            <div className="mx-auto max-w-4xl">
+            <div className="mx-auto max-w-5xl">
 
               {/* Section header */}
               <div className="flex items-center gap-3 mb-10">
@@ -523,7 +523,7 @@ export default async function ToolPage({ params }: PageProps) {
                                 <span className="block text-[9px] font-black uppercase tracking-widest text-slate-600 mb-0.5">
                                   Section {String(i + 1).padStart(2, '0')}
                                 </span>
-                                <h3 className="text-xl font-black text-white italic tracking-tight leading-tight">
+                                <h3 className="text-2xl font-black text-white italic tracking-tight leading-tight">
                                   {section.title}
                                 </h3>
                               </div>
@@ -542,7 +542,7 @@ export default async function ToolPage({ params }: PageProps) {
                               </div>
                             )}
 
-                            <p className="leading-relaxed text-slate-400 text-[15px] group-hover:text-slate-300 transition-colors">
+                            <p className="text-base leading-loose text-slate-300 group-hover:text-slate-200 transition-colors">
                               {section.content}
                             </p>
                           </div>

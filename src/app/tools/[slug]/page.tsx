@@ -412,7 +412,7 @@ export default async function ToolPage({ params }: PageProps) {
         {/* ── In-Depth Review Section ────────────────────────────────── */}
         {(tool.review_intro || (reviewSections && reviewSections.length > 0)) && (
           <section className="px-4 py-16">
-            <div className="mx-auto max-w-5xl">
+            <div className="mx-auto max-w-6xl">
 
               {/* Section header */}
               <div className="flex items-center gap-3 mb-10">
@@ -506,14 +506,14 @@ export default async function ToolPage({ params }: PageProps) {
 
                         <div
                           id={`review-section-${i}`}
-                          className={`relative pl-6 pb-10 ${i < reviewSections.length - 1 ? 'border-l border-slate-800/60' : ''}`}
+                          className={`relative pl-3 md:pl-6 pb-10 ${i < reviewSections.length - 1 ? 'border-l border-slate-800/60' : ''}`}
                         >
                           {/* Timeline dot */}
                           <div className="absolute left-0 top-0 -translate-x-1/2 w-5 h-5 rounded-full bg-slate-950 border-2 border-slate-700 flex items-center justify-center">
                             <div className="w-1.5 h-1.5 rounded-full bg-cyan-500" />
                           </div>
 
-                          <div className="group rounded-2xl border border-slate-800/50 bg-slate-900/30 hover:bg-slate-900/60 hover:border-slate-700/60 transition-all duration-500 p-6 md:p-8">
+                          <div className="group rounded-2xl border border-slate-800/50 bg-slate-900/30 hover:bg-slate-900/60 hover:border-slate-700/60 transition-all duration-500 p-4 md:p-8">
                             {/* Section header */}
                             <div className="flex items-center gap-3 mb-5">
                               <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-center text-lg">

@@ -18,9 +18,9 @@ import {
 } from '@/lib/data-fetching'
 
 export const metadata: Metadata = {
-  title: 'Future Agent | AI Tool Reviews That Actually Tell You The Truth',
+  title: 'Future Agent | Independent AI Tool Reviews, Comparisons & Guides',
   description:
-    'Honest reviews of AI agents, automation tools, and coding assistants. We test every tool, reveal hidden costs, and tell you exactly which one is worth paying for.',
+    'Independent reviews of AI agents, automation tools, and coding assistants. Accurate pricing, honest comparisons, and clear recommendations — no sponsored rankings.',
   keywords: [
     'AI agents',
     'AI automation tools',
@@ -34,9 +34,9 @@ export const metadata: Metadata = {
     'workflow automation',
   ],
   openGraph: {
-    title: 'Future Agent | AI Tool Reviews That Actually Tell You The Truth',
+    title: 'Future Agent | Independent AI Tool Reviews, Comparisons & Guides',
     description:
-      'Honest reviews of AI agents, automation tools, and coding assistants. We test every tool, reveal hidden costs, and tell you exactly which one is worth paying for.',
+      'Independent reviews of AI agents, automation tools, and coding assistants. Accurate pricing, honest comparisons, and clear recommendations — no sponsored rankings.',
     url: process.env.NEXT_PUBLIC_SITE_URL || 'https://futureagent.net',
     siteName: 'Future Agent',
     images: [
